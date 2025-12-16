@@ -1,0 +1,88 @@
+parameters:
+  - name: productName
+    type: string
+  - name: imageName
+    type: string
+  - name: deployEnvironmentName
+    type: string
+  - name: containerDeploymentStrategy
+    type: string
+    default: Rolling
+    values:
+      - Rolling
+      - Canary
+      - BlueGreen
+  - name: buildStepsTemplate
+    type: string
+    default: /templates/container-workloads/container-build-steps.yml
+  - name: buildStepsParameters
+    type: object
+    default: {}
+  - name: deployStepsTemplate
+    type: string
+    default: /templates/container-workloads/container-app-simple-deploy-steps.yml
+  - name: deployStepsParameters
+    type: object
+    default: {}
+  - name: canaryIncrements
+    type: object
+    default:
+      - 25
+      - 50
+  - name: canaryStabilizationMinutes
+    type: number
+    default: 15
+  - name: blueGreenSwapMode
+    type: string
+    default: Automatic
+    values:
+      - Automatic
+      - Manual
+  - name: blueGreenValidationWaitMinutes
+    type: number
+    default: 5
+
+extends:
+  template: /templates/governed-pipeline-base.yml
+  parameters:
+    productName: ${{ parameters.productName }}
+    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+    buildStepsTemplate: ${{ parameters.buildStepsTemplate }}
+    buildStepsParameters:
+      imageName: ${{ parameters.imageName }}
+      ${{ each pair in parameters.buildStepsParameters }}:
+        ${{ pair.key }}: ${{ pair.value }}
+
+    ${{ if eq(parameters.containerDeploymentStrategy, 'Rolling') }}:
+      deploymentJobTemplate: /templates/container-workloads/deployment-strategies/rolling-deployment-job.yml
+      deploymentJobParameters:
+        deployStepsTemplate: ${{ parameters.deployStepsTemplate }}
+        deployStepsParameters:
+          imageName: ${{ parameters.imageName }}
+          rolloutComment: "Rolling deployment triggered by platform template"
+          ${{ each pair in parameters.deployStepsParameters }}:
+            ${{ pair.key }}: ${{ pair.value }}
+
+    ${{ if eq(parameters.containerDeploymentStrategy, 'Canary') }}:
+      deploymentJobTemplate: /templates/container-workloads/deployment-strategies/canary-deployment-job.yml
+      deploymentJobParameters:
+        deployStepsTemplate: ${{ parameters.deployStepsTemplate }}
+        deployStepsParameters:
+          imageName: ${{ parameters.imageName }}
+          rolloutComment: "Canary deployment triggered by platform template"
+          ${{ each pair in parameters.deployStepsParameters }}:
+            ${{ pair.key }}: ${{ pair.value }}
+        canaryIncrements: ${{ parameters.canaryIncrements }}
+        stabilizationMinutes: ${{ parameters.canaryStabilizationMinutes }}
+
+    ${{ if eq(parameters.containerDeploymentStrategy, 'BlueGreen') }}:
+      deploymentJobTemplate: /templates/container-workloads/deployment-strategies/blue-green-deployment-job.yml
+      deploymentJobParameters:
+        deployStepsTemplate: ${{ parameters.deployStepsTemplate }}
+        deployStepsParameters:
+          imageName: ${{ parameters.imageName }}
+          rolloutComment: "Blue/Green deployment triggered by platform template"
+          ${{ each pair in parameters.deployStepsParameters }}:
+            ${{ pair.key }}: ${{ pair.value }}
+        swapMode: ${{ parameters.blueGreenSwapMode }}
+        validationWaitMinutes: ${{ parameters.blueGreenValidationWaitMinutes }}

@@ -1,0 +1,8 @@
+parameters:
+  - name: imageName
+    type: string
+
+steps:
+  - script: |
+      echo "Building image ${{ parameters.imageName }}"
+    displayName: "🐳 Container – Build image (${{ parameters.imageName }})"

@@ -1,0 +1,75 @@
+# Template for a blue/green deployment with optional manual swap
+
+parameters:
+  - name: productName
+    type: string
+  - name: deployEnvironmentName
+    type: string
+  - name: deployStepsTemplate
+    type: string
+  - name: deployStepsParameters
+    type: object
+    default: {}
+  - name: swapMode
+    type: string
+    default: Automatic
+    values:
+      - Automatic
+      - Manual
+  - name: validationWaitMinutes
+    type: number
+    default: 5
+
+jobs:
+  - deployment: BlueGreenDeploy
+    displayName: "🟦🟩 Blue-Green – ${{ parameters.productName }}"
+    environment: ${{ parameters.deployEnvironmentName }}
+    strategy:
+      runOnce:
+        preDeploy:
+          steps:
+            - script: |
+                echo "Provisioning green environment for ${{ parameters.productName }}"
+              displayName: "ℹ️ ${{ parameters.productName }} – prep green"
+
+        deploy:
+          steps:
+            - script: |
+                echo "Deploying release to green slot for ${{ parameters.productName }}"
+              displayName: "🚀 ${{ parameters.productName }} – deploy to green"
+
+            - template: ${{ parameters.deployStepsTemplate }}
+              parameters: ${{ parameters.deployStepsParameters }}
+
+        routeTraffic:
+          steps:
+            - script: |
+                echo "Waiting ${{ parameters.validationWaitMinutes }} minutes before swapping traffic"
+              displayName: "⏱️ ${{ parameters.productName }} – stabilize"
+
+            - ${{ if eq(parameters.swapMode, 'Automatic') }}:
+              - script: |
+                  echo "Automatically swapping traffic to green for ${{ parameters.productName }}"
+                displayName: "🔁 ${{ parameters.productName }} – auto swap"
+            - ${{ if eq(parameters.swapMode, 'Manual') }}:
+              - script: |
+                  echo "Manual swap required. Approver must confirm before routing users to green for ${{ parameters.productName }}"
+                displayName: "✋ ${{ parameters.productName }} – manual gate"
+
+        postRouteTraffic:
+          steps:
+            - script: |
+                echo "Decommissioning previous blue version for ${{ parameters.productName }}"
+              displayName: "🧹 ${{ parameters.productName }} – clean up"
+
+        on:
+          success:
+            steps:
+              - script: |
+                  echo "Blue/Green deployment finished for ${{ parameters.productName }}"
+                displayName: "✅ ${{ parameters.productName }} – success"
+          failure:
+            steps:
+              - script: |
+                  echo "Blue/Green deployment failed for ${{ parameters.productName }}. Please investigate before swapping traffic."
+                displayName: "⚠️ ${{ parameters.productName }} – failure"

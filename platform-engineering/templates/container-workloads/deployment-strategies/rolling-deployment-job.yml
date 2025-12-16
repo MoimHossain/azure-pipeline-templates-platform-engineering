@@ -1,0 +1,31 @@
+# Template for a simple Rolling (run-once) deployment
+
+parameters:
+  - name: productName
+    type: string
+  - name: deployEnvironmentName
+    type: string
+  - name: deployStepsTemplate
+    type: string
+  - name: deployStepsParameters
+    type: object
+    default: {}
+
+jobs:
+  - deployment: RollingDeploy
+    displayName: "🚀 Rolling – ${{ parameters.productName }}"
+    environment: ${{ parameters.deployEnvironmentName }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - script: |
+                echo "Starting rolling deployment of ${{ parameters.productName }} to ${{ parameters.deployEnvironmentName }}"
+              displayName: "ℹ️ ${{ parameters.productName }} – initialize"
+
+            - template: ${{ parameters.deployStepsTemplate }}
+              parameters: ${{ parameters.deployStepsParameters }}
+
+            - script: |
+                echo "Rolling deployment of ${{ parameters.productName }} completed"
+              displayName: "✅ ${{ parameters.productName }} – finalize"

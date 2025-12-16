@@ -1,0 +1,58 @@
+parameters:
+  - name: productName
+    type: string
+
+  # CI injection
+  - name: buildStepsTemplate
+    type: string
+  - name: buildStepsParameters
+    type: object
+    default: {}
+
+  # CD injection
+  - name: deploymentJobTemplate
+    type: string
+  - name: deploymentJobParameters
+    type: object
+    default: {}
+  - name: deployEnvironmentName
+    type: string
+
+
+stages:
+  # --------------------
+  # CI STAGE
+  # --------------------
+  - stage: CI
+    displayName: "CI – Build & Test (${{ parameters.productName }})"
+    jobs:
+      - job: Build
+        displayName: "Build job – ${{ parameters.productName }}"
+        steps:
+          - checkout: self
+            displayName: "Checkout source"
+          - script: echo "${{ parameters.productName }} build start"
+            displayName: "🔧 ${{ parameters.productName }} – Start build"
+
+          - template: ${{ parameters.buildStepsTemplate }}
+            parameters: ${{ parameters.buildStepsParameters }}
+
+          - script: echo "${{ parameters.productName }} build end"
+            displayName: "✅ ${{ parameters.productName }} – Build completed"
+
+  # --------------------
+  # CD STAGE 
+  # --------------------
+  - stage: CD
+    displayName: "CD – Deploy (${{ parameters.productName }})"
+    dependsOn: CI
+    condition: succeeded()
+
+    jobs:
+      - template: ${{ parameters.deploymentJobTemplate }}
+        parameters:
+          productName: ${{ parameters.productName }}
+          deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+          ${{ each pair in parameters.deploymentJobParameters }}:
+            ${{ pair.key }}: ${{ pair.value }}
+

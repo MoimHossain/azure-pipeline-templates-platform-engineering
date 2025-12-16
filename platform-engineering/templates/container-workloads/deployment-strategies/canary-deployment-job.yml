@@ -1,0 +1,71 @@
+# Template for a multi-phase canary deployment
+
+parameters:
+  - name: productName
+    type: string
+  - name: deployEnvironmentName
+    type: string
+  - name: deployStepsTemplate
+    type: string
+  - name: deployStepsParameters
+    type: object
+    default: {}
+  - name: canaryIncrements
+    type: object
+    default:
+      - 25
+      - 50
+  - name: stabilizationMinutes
+    type: number
+    default: 15
+
+jobs:
+  - deployment: CanaryDeploy
+    displayName: "🕊️ Canary – ${{ parameters.productName }}"
+    environment: ${{ parameters.deployEnvironmentName }}
+    strategy:
+      canary:
+        increments: ${{ parameters.canaryIncrements }}
+        preDeploy:
+          steps:
+            - script: |
+                echo "Preparing canary deployment for ${{ parameters.productName }}"
+                echo "Target environment: ${{ parameters.deployEnvironmentName }}"
+              displayName: "ℹ️ ${{ parameters.productName }} – pre-deploy"
+
+        deploy:
+          steps:
+            - script: |
+                echo "Deploying canary artifacts for ${{ parameters.productName }}"
+              displayName: "🚀 ${{ parameters.productName }} – push canary"
+
+            - template: ${{ parameters.deployStepsTemplate }}
+              parameters: ${{ parameters.deployStepsParameters }}
+
+        routeTraffic:
+          steps:
+            - script: |
+                echo "Monitoring canary increments (${{ join(parameters.canaryIncrements, ',') }}%) for ${{ parameters.productName }}"
+                echo "Waiting ${{ parameters.stabilizationMinutes }} minutes between increments"
+              displayName: "🔀 ${{ parameters.productName }} – route traffic"
+
+        postRouteTraffic:
+          steps:
+            - script: |
+                echo "Promoting canary to full production for ${{ parameters.productName }}"
+              displayName: "⬆️ ${{ parameters.productName }} – promote"
+
+            - template: ${{ parameters.deployStepsTemplate }}
+              parameters: ${{ parameters.deployStepsParameters }}
+
+        on:
+          failure:
+            steps:
+              - script: |
+                  echo "Canary deployment failed for ${{ parameters.productName }}. Initiating rollback."
+                displayName: "⚠️ ${{ parameters.productName }} – rollback"
+          success:
+            steps:
+              - script: |
+                  echo "Canary deployment completed successfully for ${{ parameters.productName }}"
+                displayName: "✅ ${{ parameters.productName }} – success"

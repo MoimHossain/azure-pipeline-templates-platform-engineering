@@ -1,0 +1,34 @@
+# Template for a simple one-time or Rolling deployment (deploy-once)
+
+parameters:
+  - name: productName
+    type: string
+  - name: deployEnvironmentName
+    type: string
+  - name: deployStepsTemplate
+    type: string
+  - name: deployStepsParameters
+    type: object
+    default: {}
+
+jobs:
+  - deployment: DeployOnce
+    displayName: "🚀 Deploy Once – ${{ parameters.productName }}"
+    environment: ${{ parameters.deployEnvironmentName }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            # Pre-deploy info/log
+            - script: |
+                echo "Starting one-time deployment of ${{ parameters.productName }} to ${{ parameters.deployEnvironmentName }}"
+              displayName: "ℹ️ ${{ parameters.productName }} – Initialize deploy"
+
+            # Inject actual deployment steps
+            - template: ${{ parameters.deployStepsTemplate }}
+              parameters: ${{ parameters.deployStepsParameters }}
+
+            # Post-deploy info/log
+            - script: |
+                echo "Deployment of ${{ parameters.productName }} completed successfully"
+              displayName: "✅ ${{ parameters.productName }} – Deployment completed"

@@ -1,0 +1,32 @@
+parameters:
+  - name: imageName
+    type: string
+  - name: kubernetesManifestPath
+    type: string
+    default: manifests/deployment.yml
+  - name: kubernetesNamespace
+    type: string
+    default: default
+  - name: rolloutComment
+    type: string
+    default: ""
+
+steps:
+  - script: |
+      echo "Starting container deployment"
+      echo "Manifest: ${{ parameters.kubernetesManifestPath }}"
+      echo "Namespace: ${{ parameters.kubernetesNamespace }}"
+      if [ -n "${{ parameters.rolloutComment }}" ]; then
+        echo "Comment: ${{ parameters.rolloutComment }}"
+      fi
+    displayName: "ℹ️ Container – describe rollout"
+
+  - script: |
+      echo "Applying manifest ${{ parameters.kubernetesManifestPath }} for image ${{ parameters.imageName }}"
+      # kubectl apply -n ${{ parameters.kubernetesNamespace }} -f ${{ parameters.kubernetesManifestPath }}
+    displayName: "🚀 Container – apply manifest"
+
+  - script: |
+      echo "Verifying deployment for image ${{ parameters.imageName }}"
+      # kubectl rollout status deployment/<name> -n ${{ parameters.kubernetesNamespace }}
+    displayName: "✅ Container – verify rollout"
