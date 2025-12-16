@@ -1,0 +1,26 @@
+trigger:
+  - main
+
+resources:
+  repositories:
+    - repository: Platform-Engineering   # 👈 alias (must match @Platform-Engineering)
+      type: git
+      name: Platform-Engineering/Platform-Engineering
+      ref: refs/heads/main   # or a tag, strongly recommended
+
+extends:
+  template: templates/container-workloads/container-pipeline-base.yml@Platform-Engineering
+  parameters:
+    productName: Quadrant
+    imageName: contoso/orders:$(Build.BuildId)
+    deployEnvironmentName: quadrant-dev
+    containerDeploymentStrategy: Canary
+    canaryStrategyMode: Simulated
+    canaryIncrements:
+      - 20
+      - 50
+      - 80
+    canaryStabilizationMinutes: 10
+    deployStepsParameters:
+      kubernetesManifestPath: manifests/quadrant-orders.yml
+      kubernetesNamespace: quadrant

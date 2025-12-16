@@ -32,6 +32,12 @@ parameters:
   - name: canaryStabilizationMinutes
     type: number
     default: 15
+  - name: canaryStrategyMode
+    type: string
+    default: Simulated
+    values:
+      - Simulated
+      - Native
   - name: blueGreenSwapMode
     type: string
     default: Automatic
@@ -74,6 +80,7 @@ extends:
             ${{ pair.key }}: ${{ pair.value }}
         canaryIncrements: ${{ parameters.canaryIncrements }}
         stabilizationMinutes: ${{ parameters.canaryStabilizationMinutes }}
+        strategyMode: ${{ parameters.canaryStrategyMode }}
 
     ${{ if eq(parameters.containerDeploymentStrategy, 'BlueGreen') }}:
       deploymentJobTemplate: /templates/container-workloads/deployment-strategies/blue-green-deployment-job.yml

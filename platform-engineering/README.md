@@ -17,7 +17,7 @@ Although this folder is part of the same repository for the sake of this example
 The platform team owns the orchestration logic. Workload teams only choose the `containerDeploymentStrategy` parameter and, optionally, supply strategy-specific knobs (for example `blueGreenSwapMode` or `canaryTrafficPercent`). Each strategy template injects the same deploy steps to keep workload surface area minimal:
 
 - **Rolling** – `rolling-deployment-job.yml` performs a standard `runOnce` deployment.
-- **Canary** – `canary-deployment-job.yml` orchestrates `preDeploy`, `deploy`, `routeTraffic`, and `postRouteTraffic` phases with stabilization timing.
+- **Canary** – `canary-deployment-job.yml` orchestrates `preDeploy`, `deploy`, `routeTraffic`, and `postRouteTraffic` phases with stabilization timing. Set `canaryStrategyMode` to `Native` only when your environment resource supports Azure Pipelines' native canary deployments; otherwise the default `Simulated` mode runs the same hooks but ramps traffic via scripted increments so environment-scoped targets continue to work.
 - Canary deployments now rely on Azure Pipelines' native `canary` strategy with configurable `canaryIncrements` (defaults are 25% and 50%) so platform owners define rollout cadence once and workload teams override only when needed.
 - **Blue-Green** – `blue-green-deployment-job.yml` provisions a green slot and optionally swaps traffic automatically.
 
