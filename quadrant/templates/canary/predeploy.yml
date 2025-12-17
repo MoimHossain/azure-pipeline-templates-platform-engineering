@@ -1,0 +1,14 @@
+parameters:
+  - name: productName
+    type: string
+  - name: deployEnvironmentName
+    type: string
+  - name: stage
+    type: string
+    default: preDeploy
+
+steps:
+  - script: |
+      echo "[Quadrant] Pre-deploy checks for ${{ parameters.productName }}"
+      echo "Target environment: ${{ parameters.deployEnvironmentName }}"
+    displayName: "Quadrant – pre-deploy guardrails"

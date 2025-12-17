@@ -1,0 +1,14 @@
+parameters:
+  - name: productName
+    type: string
+  - name: deployEnvironmentName
+    type: string
+  - name: stage
+    type: string
+    default: postRouteTraffic
+
+steps:
+  - script: |
+      echo "[Quadrant] Post-route validation for ${{ parameters.productName }}"
+      echo "Environment: ${{ parameters.deployEnvironmentName }}"
+    displayName: "Quadrant – post-route validation"

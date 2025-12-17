@@ -15,12 +15,18 @@ extends:
     imageName: contoso/orders:$(Build.BuildId)
     deployEnvironmentName: quadrant-dev
     containerDeploymentStrategy: Canary
-    canaryStrategyMode: Simulated
+    canaryStrategyMode: Orchestrated
+    deployStepsTemplate: templates/canary/deploy.yml@self
     canaryIncrements:
       - 20
       - 50
       - 80
     canaryStabilizationMinutes: 10
+    canaryPreDeployStepsTemplate: templates/canary/predeploy.yml@self
+    canaryRouteTrafficStepsTemplate: templates/canary/route-traffic.yml@self
+    canaryPostRouteTrafficStepsTemplate: templates/canary/post-route.yml@self
+    canarySuccessStepsTemplate: templates/canary/success.yml@self
+    canaryFailureStepsTemplate: templates/canary/failure.yml@self
     deployStepsParameters:
       kubernetesManifestPath: manifests/quadrant-orders.yml
       kubernetesNamespace: quadrant

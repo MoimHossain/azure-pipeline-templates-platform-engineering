@@ -1,0 +1,17 @@
+parameters:
+  - name: productName
+    type: string
+  - name: deployEnvironmentName
+    type: string
+  - name: stage
+    type: string
+    default: routeTraffic
+  - name: incrementPercent
+    type: number
+    default: 0
+
+steps:
+  - script: |
+      echo "[Quadrant] Routing ${{ parameters.incrementPercent }}% traffic for ${{ parameters.productName }}"
+      echo "Environment: ${{ parameters.deployEnvironmentName }}"
+    displayName: "Quadrant – route ${{ parameters.incrementPercent }}%"

@@ -34,10 +34,40 @@ parameters:
     default: 15
   - name: canaryStrategyMode
     type: string
-    default: Simulated
+    default: Orchestrated
     values:
-      - Simulated
+      - Orchestrated
       - Native
+  - name: canaryPreDeployStepsTemplate
+    type: string
+    default: ""
+  - name: canaryPreDeployStepsParameters
+    type: object
+    default: {}
+  - name: canaryRouteTrafficStepsTemplate
+    type: string
+    default: ""
+  - name: canaryRouteTrafficStepsParameters
+    type: object
+    default: {}
+  - name: canaryPostRouteTrafficStepsTemplate
+    type: string
+    default: ""
+  - name: canaryPostRouteTrafficStepsParameters
+    type: object
+    default: {}
+  - name: canarySuccessStepsTemplate
+    type: string
+    default: ""
+  - name: canarySuccessStepsParameters
+    type: object
+    default: {}
+  - name: canaryFailureStepsTemplate
+    type: string
+    default: ""
+  - name: canaryFailureStepsParameters
+    type: object
+    default: {}
   - name: blueGreenSwapMode
     type: string
     default: Automatic
@@ -78,6 +108,16 @@ extends:
           rolloutComment: "Canary deployment triggered by platform template"
           ${{ each pair in parameters.deployStepsParameters }}:
             ${{ pair.key }}: ${{ pair.value }}
+        preDeployStepsTemplate: ${{ parameters.canaryPreDeployStepsTemplate }}
+        preDeployStepsParameters: ${{ parameters.canaryPreDeployStepsParameters }}
+        routeTrafficStepsTemplate: ${{ parameters.canaryRouteTrafficStepsTemplate }}
+        routeTrafficStepsParameters: ${{ parameters.canaryRouteTrafficStepsParameters }}
+        postRouteTrafficStepsTemplate: ${{ parameters.canaryPostRouteTrafficStepsTemplate }}
+        postRouteTrafficStepsParameters: ${{ parameters.canaryPostRouteTrafficStepsParameters }}
+        successStepsTemplate: ${{ parameters.canarySuccessStepsTemplate }}
+        successStepsParameters: ${{ parameters.canarySuccessStepsParameters }}
+        failureStepsTemplate: ${{ parameters.canaryFailureStepsTemplate }}
+        failureStepsParameters: ${{ parameters.canaryFailureStepsParameters }}
         canaryIncrements: ${{ parameters.canaryIncrements }}
         stabilizationMinutes: ${{ parameters.canaryStabilizationMinutes }}
         strategyMode: ${{ parameters.canaryStrategyMode }}

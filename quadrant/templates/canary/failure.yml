@@ -1,0 +1,15 @@
+parameters:
+  - name: productName
+    type: string
+  - name: deployEnvironmentName
+    type: string
+  - name: stage
+    type: string
+    default: failure
+
+steps:
+  - script: |
+      echo "[Quadrant] Canary failed for ${{ parameters.productName }}"
+      echo "Environment: ${{ parameters.deployEnvironmentName }}"
+      echo "Initiating workload-specific rollback procedures"
+    displayName: "Quadrant – failure response"

@@ -1,0 +1,14 @@
+parameters:
+  - name: productName
+    type: string
+  - name: deployEnvironmentName
+    type: string
+  - name: stage
+    type: string
+    default: success
+
+steps:
+  - script: |
+      echo "[Quadrant] Canary succeeded for ${{ parameters.productName }}"
+      echo "Environment: ${{ parameters.deployEnvironmentName }}"
+    displayName: "Quadrant – success summary"

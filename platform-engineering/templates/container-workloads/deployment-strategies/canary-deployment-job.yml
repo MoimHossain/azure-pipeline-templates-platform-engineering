@@ -10,6 +10,36 @@ parameters:
   - name: deployStepsParameters
     type: object
     default: {}
+  - name: preDeployStepsTemplate
+    type: string
+    default: ""
+  - name: preDeployStepsParameters
+    type: object
+    default: {}
+  - name: routeTrafficStepsTemplate
+    type: string
+    default: ""
+  - name: routeTrafficStepsParameters
+    type: object
+    default: {}
+  - name: postRouteTrafficStepsTemplate
+    type: string
+    default: ""
+  - name: postRouteTrafficStepsParameters
+    type: object
+    default: {}
+  - name: successStepsTemplate
+    type: string
+    default: ""
+  - name: successStepsParameters
+    type: object
+    default: {}
+  - name: failureStepsTemplate
+    type: string
+    default: ""
+  - name: failureStepsParameters
+    type: object
+    default: {}
   - name: canaryIncrements
     type: object
     default:
@@ -20,110 +50,283 @@ parameters:
     default: 15
   - name: strategyMode
     type: string
-    default: Simulated
+    default: Orchestrated
     values:
-      - Simulated
+      - Orchestrated
       - Native
 
 jobs:
-  - deployment: CanaryDeploy
-    displayName: "🕊️ Canary – ${{ parameters.productName }}"
-    environment: ${{ parameters.deployEnvironmentName }}
-    strategy:
-      ${{ if eq(parameters.strategyMode, 'Native') }}:
+  - ${{ if eq(parameters.strategyMode, 'Native') }}:
+    - deployment: CanaryNative
+      displayName: "🕊️ Canary (native) – ${{ parameters.productName }}"
+      environment: ${{ parameters.deployEnvironmentName }}
+      strategy:
         canary:
           increments: ${{ parameters.canaryIncrements }}
           preDeploy:
             steps:
-              - script: |
-                  echo "Preparing canary deployment for ${{ parameters.productName }}"
-                  echo "Target environment: ${{ parameters.deployEnvironmentName }}"
-                displayName: "ℹ️ ${{ parameters.productName }} – pre-deploy"
+              - ${{ if ne(parameters.preDeployStepsTemplate, '') }}:
+                - template: ${{ parameters.preDeployStepsTemplate }}
+                  parameters:
+                    stage: preDeploy
+                    productName: ${{ parameters.productName }}
+                    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                    ${{ each pair in parameters.preDeployStepsParameters }}:
+                      ${{ pair.key }}: ${{ pair.value }}
+              - ${{ if eq(parameters.preDeployStepsTemplate, '') }}:
+                - script: |
+                    echo "Preparing canary deployment for ${{ parameters.productName }}"
+                    echo "Target environment: ${{ parameters.deployEnvironmentName }}"
+                  displayName: "ℹ️ ${{ parameters.productName }} – pre-deploy"
 
           deploy:
             steps:
-              - script: |
-                  echo "Deploying canary artifacts for ${{ parameters.productName }}"
-                displayName: "🚀 ${{ parameters.productName }} – push canary"
-
-              - template: ${{ parameters.deployStepsTemplate }}
-                parameters: ${{ parameters.deployStepsParameters }}
+              - ${{ if ne(parameters.deployStepsTemplate, '') }}:
+                - template: ${{ parameters.deployStepsTemplate }}
+                  parameters:
+                    productName: ${{ parameters.productName }}
+                    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                    stage: deploy
+                    incrementPercent: 0
+                    ${{ each pair in parameters.deployStepsParameters }}:
+                      ${{ pair.key }}: ${{ pair.value }}
+              - ${{ if eq(parameters.deployStepsTemplate, '') }}:
+                - script: |
+                    echo "Deploying canary artifacts for ${{ parameters.productName }}"
+                  displayName: "🚀 ${{ parameters.productName }} – push canary"
 
           routeTraffic:
             steps:
-              - script: |
-                  echo "Monitoring native canary increments for ${{ parameters.productName }}"
-                  echo "Waiting ${{ parameters.stabilizationMinutes }} minutes between increments"
-                displayName: "🔀 ${{ parameters.productName }} – route traffic"
+              - ${{ if ne(parameters.routeTrafficStepsTemplate, '') }}:
+                - template: ${{ parameters.routeTrafficStepsTemplate }}
+                  parameters:
+                    productName: ${{ parameters.productName }}
+                    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                    stage: routeTraffic
+                    incrementPercent: 0
+                    ${{ each pair in parameters.routeTrafficStepsParameters }}:
+                      ${{ pair.key }}: ${{ pair.value }}
+              - ${{ if eq(parameters.routeTrafficStepsTemplate, '') }}:
+                - script: |
+                    echo "Monitoring native canary increments for ${{ parameters.productName }}"
+                    echo "Waiting ${{ parameters.stabilizationMinutes }} minutes between increments"
+                  displayName: "🔀 ${{ parameters.productName }} – route traffic"
 
           postRouteTraffic:
             steps:
-              - script: |
-                  echo "Promoting canary to full production for ${{ parameters.productName }}"
-                displayName: "⬆️ ${{ parameters.productName }} – promote"
+              - ${{ if ne(parameters.postRouteTrafficStepsTemplate, '') }}:
+                - template: ${{ parameters.postRouteTrafficStepsTemplate }}
+                  parameters:
+                    productName: ${{ parameters.productName }}
+                    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                    stage: postRouteTraffic
+                    ${{ each pair in parameters.postRouteTrafficStepsParameters }}:
+                      ${{ pair.key }}: ${{ pair.value }}
+              - ${{ if eq(parameters.postRouteTrafficStepsTemplate, '') }}:
+                - script: |
+                    echo "Promoting canary to full production for ${{ parameters.productName }}"
+                  displayName: "⬆️ ${{ parameters.productName }} – promote"
 
-              - template: ${{ parameters.deployStepsTemplate }}
-                parameters: ${{ parameters.deployStepsParameters }}
+              - ${{ if ne(parameters.deployStepsTemplate, '') }}:
+                - template: ${{ parameters.deployStepsTemplate }}
+                  parameters:
+                    productName: ${{ parameters.productName }}
+                    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                    stage: postRouteTraffic
+                    incrementPercent: 100
+                    ${{ each pair in parameters.deployStepsParameters }}:
+                      ${{ pair.key }}: ${{ pair.value }}
 
           on:
             failure:
               steps:
-                - script: |
-                    echo "Canary deployment failed for ${{ parameters.productName }}. Initiating rollback."
-                  displayName: "⚠️ ${{ parameters.productName }} – rollback"
+                - ${{ if ne(parameters.failureStepsTemplate, '') }}:
+                  - template: ${{ parameters.failureStepsTemplate }}
+                    parameters:
+                      productName: ${{ parameters.productName }}
+                      deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                      stage: failure
+                      ${{ each pair in parameters.failureStepsParameters }}:
+                        ${{ pair.key }}: ${{ pair.value }}
+                - ${{ if eq(parameters.failureStepsTemplate, '') }}:
+                  - script: |
+                      echo "Canary deployment failed for ${{ parameters.productName }}. Initiating rollback."
+                    displayName: "⚠️ ${{ parameters.productName }} – rollback"
             success:
               steps:
-                - script: |
-                    echo "Canary deployment completed successfully for ${{ parameters.productName }}"
-                  displayName: "✅ ${{ parameters.productName }} – success"
+                - ${{ if ne(parameters.successStepsTemplate, '') }}:
+                  - template: ${{ parameters.successStepsTemplate }}
+                    parameters:
+                      productName: ${{ parameters.productName }}
+                      deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                      stage: success
+                      ${{ each pair in parameters.successStepsParameters }}:
+                        ${{ pair.key }}: ${{ pair.value }}
+                - ${{ if eq(parameters.successStepsTemplate, '') }}:
+                  - script: |
+                      echo "Canary deployment completed successfully for ${{ parameters.productName }}"
+                    displayName: "✅ ${{ parameters.productName }} – success"
 
-      ${{ if ne(parameters.strategyMode, 'Native') }}:
+  - ${{ if ne(parameters.strategyMode, 'Native') }}:
+    - deployment: CanaryPreDeploy
+      displayName: "🕊️ Canary pre-deploy – ${{ parameters.productName }}"
+      environment: ${{ parameters.deployEnvironmentName }}
+      strategy:
         runOnce:
-          preDeploy:
-            steps:
-              - script: |
-                  echo "Preparing simulated canary deployment for ${{ parameters.productName }}"
-                  echo "Target environment: ${{ parameters.deployEnvironmentName }}"
-                displayName: "ℹ️ ${{ parameters.productName }} – pre-deploy"
-
           deploy:
             steps:
-              - script: |
-                  echo "Deploying canary artifacts for ${{ parameters.productName }}"
-                displayName: "🚀 ${{ parameters.productName }} – push canary"
-
-              - template: ${{ parameters.deployStepsTemplate }}
-                parameters: ${{ parameters.deployStepsParameters }}
-
-          routeTraffic:
-            steps:
-              - script: |
-                  echo "Simulating traffic ramp with stabilization windows of ${{ parameters.stabilizationMinutes }} minutes"
-                displayName: "🔁 ${{ parameters.productName }} – plan increments"
-
-              - ${{ each inc in parameters.canaryIncrements }}:
+              - ${{ if ne(parameters.preDeployStepsTemplate, '') }}:
+                - template: ${{ parameters.preDeployStepsTemplate }}
+                  parameters:
+                    stage: preDeploy
+                    productName: ${{ parameters.productName }}
+                    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                    ${{ each pair in parameters.preDeployStepsParameters }}:
+                      ${{ pair.key }}: ${{ pair.value }}
+              - ${{ if eq(parameters.preDeployStepsTemplate, '') }}:
                 - script: |
-                    echo "Routing approximately ${{ inc }}% traffic to canary for ${{ parameters.productName }}"
-                    echo "Waiting ${{ parameters.stabilizationMinutes }} minutes before next increment"
-                  displayName: "🔀 ${{ parameters.productName }} – ramp to ${{ inc }}%"
+                    echo "Preparing canary deployment for ${{ parameters.productName }}"
+                    echo "Target environment: ${{ parameters.deployEnvironmentName }}"
+                  displayName: "ℹ️ ${{ parameters.productName }} – pre-deploy"
 
-          postRouteTraffic:
-            steps:
-              - script: |
-                  echo "Promoting simulated canary to full production for ${{ parameters.productName }}"
-                displayName: "⬆️ ${{ parameters.productName }} – promote"
-
-              - template: ${{ parameters.deployStepsTemplate }}
-                parameters: ${{ parameters.deployStepsParameters }}
-
-          on:
-            failure:
+    - ${{ each inc in parameters.canaryIncrements }}:
+      - deployment: ${{ format('CanaryStep_{0}', inc.key) }}
+        displayName: "🕊️ Canary step ${{ inc.value }}% – ${{ parameters.productName }}"
+        ${{ if eq(int(inc.key), 0) }}:
+          dependsOn: CanaryPreDeploy
+        ${{ if gt(int(inc.key), 0) }}:
+          dependsOn: ${{ format('CanaryStep_{0}', sub(int(inc.key), 1)) }}
+        environment: ${{ parameters.deployEnvironmentName }}
+        strategy:
+          runOnce:
+            deploy:
               steps:
+                - ${{ if ne(parameters.deployStepsTemplate, '') }}:
+                  - template: ${{ parameters.deployStepsTemplate }}
+                    parameters:
+                      productName: ${{ parameters.productName }}
+                      deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                      stage: deploy
+                      incrementPercent: ${{ inc.value }}
+                      ${{ each pair in parameters.deployStepsParameters }}:
+                        ${{ pair.key }}: ${{ pair.value }}
+                - ${{ if eq(parameters.deployStepsTemplate, '') }}:
+                  - script: |
+                      echo "Deploying canary artifacts for ${{ parameters.productName }} at ${{ inc.value }}%"
+                    displayName: "🚀 ${{ parameters.productName }} – push ${{ inc.value }}%"
+
+                - ${{ if ne(parameters.routeTrafficStepsTemplate, '') }}:
+                  - template: ${{ parameters.routeTrafficStepsTemplate }}
+                    parameters:
+                      productName: ${{ parameters.productName }}
+                      deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                      stage: routeTraffic
+                      incrementPercent: ${{ inc.value }}
+                      ${{ each pair in parameters.routeTrafficStepsParameters }}:
+                        ${{ pair.key }}: ${{ pair.value }}
+                - ${{ if eq(parameters.routeTrafficStepsTemplate, '') }}:
+                  - script: |
+                      echo "Routing approximately ${{ inc.value }}% traffic for ${{ parameters.productName }}"
+                    displayName: "🔀 ${{ parameters.productName }} – ramp to ${{ inc.value }}%"
+
+                - pwsh: |
+                    Write-Host "Holding steady for ${{ parameters.stabilizationMinutes }} minutes before next increment"
+                    Start-Sleep -Seconds ${{ mul(parameters.stabilizationMinutes, 60) }}
+                  displayName: "⏱️ ${{ parameters.productName }} – stabilize"
+
+    - deployment: CanaryFinal
+      displayName: "🕊️ Canary finalize 100% – ${{ parameters.productName }}"
+      ${{ if gt(length(parameters.canaryIncrements), 0) }}:
+        dependsOn: ${{ format('CanaryStep_{0}', sub(length(parameters.canaryIncrements), 1)) }}
+      ${{ if eq(length(parameters.canaryIncrements), 0) }}:
+        dependsOn: CanaryPreDeploy
+      environment: ${{ parameters.deployEnvironmentName }}
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - ${{ if ne(parameters.deployStepsTemplate, '') }}:
+                - template: ${{ parameters.deployStepsTemplate }}
+                  parameters:
+                    productName: ${{ parameters.productName }}
+                    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                    stage: deploy
+                    incrementPercent: 100
+                    ${{ each pair in parameters.deployStepsParameters }}:
+                      ${{ pair.key }}: ${{ pair.value }}
+              - ${{ if eq(parameters.deployStepsTemplate, '') }}:
                 - script: |
-                    echo "Simulated canary deployment failed for ${{ parameters.productName }}. Initiating rollback."
-                  displayName: "⚠️ ${{ parameters.productName }} – rollback"
-            success:
-              steps:
+                    echo "Routing 100% of traffic for ${{ parameters.productName }}"
+                    echo "Target environment: ${{ parameters.deployEnvironmentName }}"
+                  displayName: "🔁 ${{ parameters.productName }} – full traffic"
+
+              - ${{ if ne(parameters.routeTrafficStepsTemplate, '') }}:
+                - template: ${{ parameters.routeTrafficStepsTemplate }}
+                  parameters:
+                    productName: ${{ parameters.productName }}
+                    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                    stage: routeTraffic
+                    incrementPercent: 100
+                    ${{ each pair in parameters.routeTrafficStepsParameters }}:
+                      ${{ pair.key }}: ${{ pair.value }}
+              - ${{ if eq(parameters.routeTrafficStepsTemplate, '') }}:
                 - script: |
-                    echo "Simulated canary deployment completed successfully for ${{ parameters.productName }}"
-                  displayName: "✅ ${{ parameters.productName }} – success"
+                    echo "Promoting canary to 100% traffic for ${{ parameters.productName }}"
+                  displayName: "⬆️ ${{ parameters.productName }} – promote"
+
+    - deployment: CanaryPostRoute
+      displayName: "🕊️ Canary post-route – ${{ parameters.productName }}"
+      dependsOn: CanaryFinal
+      environment: ${{ parameters.deployEnvironmentName }}
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - ${{ if ne(parameters.postRouteTrafficStepsTemplate, '') }}:
+                - template: ${{ parameters.postRouteTrafficStepsTemplate }}
+                  parameters:
+                    productName: ${{ parameters.productName }}
+                    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                    stage: postRouteTraffic
+                    ${{ each pair in parameters.postRouteTrafficStepsParameters }}:
+                      ${{ pair.key }}: ${{ pair.value }}
+              - ${{ if eq(parameters.postRouteTrafficStepsTemplate, '') }}:
+                - script: |
+                    echo "Post-route validation for ${{ parameters.productName }}"
+                  displayName: "📋 ${{ parameters.productName }} – post-route"
+
+    - job: CanarySuccess
+      displayName: "🕊️ Canary success – ${{ parameters.productName }}"
+      dependsOn: CanaryPostRoute
+      condition: succeeded('CanaryPostRoute')
+      steps:
+        - ${{ if ne(parameters.successStepsTemplate, '') }}:
+          - template: ${{ parameters.successStepsTemplate }}
+            parameters:
+              productName: ${{ parameters.productName }}
+              deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+              stage: success
+              ${{ each pair in parameters.successStepsParameters }}:
+                ${{ pair.key }}: ${{ pair.value }}
+        - ${{ if eq(parameters.successStepsTemplate, '') }}:
+          - script: |
+              echo "Canary deployment completed successfully for ${{ parameters.productName }}"
+            displayName: "✅ ${{ parameters.productName }} – success"
+
+    - job: CanaryFailure
+      displayName: "🕊️ Canary failure – ${{ parameters.productName }}"
+      dependsOn: CanaryPostRoute
+      condition: failed()
+      steps:
+        - ${{ if ne(parameters.failureStepsTemplate, '') }}:
+          - template: ${{ parameters.failureStepsTemplate }}
+            parameters:
+              productName: ${{ parameters.productName }}
+              deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+              stage: failure
+              ${{ each pair in parameters.failureStepsParameters }}:
+                ${{ pair.key }}: ${{ pair.value }}
+        - ${{ if eq(parameters.failureStepsTemplate, '') }}:
+          - script: |
+              echo "Canary deployment failed for ${{ parameters.productName }}. Initiating rollback."
+            displayName: "⚠️ ${{ parameters.productName }} – rollback"
