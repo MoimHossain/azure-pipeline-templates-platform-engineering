@@ -43,11 +43,38 @@ parameters:
   - name: canaryIncrements
     type: object
     default:
+      CanaryStep_0: 25
+      CanaryStep_1: 50
+  - name: nativeCanaryIncrements
+    type: object
+    default:
       - 25
       - 50
-  - name: stabilizationMinutes
+  - name: canaryStepDependencyMap
+    type: object
+    default:
+      CanaryStep_0: CanaryPreDeploy
+      CanaryStep_1: CanaryStep_0
+      CanaryStep_2: CanaryStep_1
+      CanaryStep_3: CanaryStep_2
+      CanaryStep_4: CanaryStep_3
+      CanaryStep_5: CanaryStep_4
+      CanaryStep_6: CanaryStep_5
+      CanaryStep_7: CanaryStep_6
+      CanaryStep_8: CanaryStep_7
+      CanaryStep_9: CanaryStep_8
+      CanaryStep_10: CanaryStep_9
+      CanaryStep_11: CanaryStep_10
+      CanaryStep_12: CanaryStep_11
+      CanaryStep_13: CanaryStep_12
+      CanaryStep_14: CanaryStep_13
+      CanaryStep_15: CanaryStep_14
+      CanaryStep_16: CanaryStep_15
+      CanaryStep_17: CanaryStep_16
+      CanaryStep_18: CanaryStep_17
+  - name: stabilizationSeconds
     type: number
-    default: 15
+    default: 900
   - name: strategyMode
     type: string
     default: Orchestrated
@@ -62,7 +89,7 @@ jobs:
       environment: ${{ parameters.deployEnvironmentName }}
       strategy:
         canary:
-          increments: ${{ parameters.canaryIncrements }}
+          increments: ${{ parameters.nativeCanaryIncrements }}
           preDeploy:
             steps:
               - ${{ if ne(parameters.preDeployStepsTemplate, '') }}:
@@ -109,7 +136,7 @@ jobs:
               - ${{ if eq(parameters.routeTrafficStepsTemplate, '') }}:
                 - script: |
                     echo "Monitoring native canary increments for ${{ parameters.productName }}"
-                    echo "Waiting ${{ parameters.stabilizationMinutes }} minutes between increments"
+                    echo "Waiting ${{ parameters.stabilizationSeconds }} seconds between increments"
                   displayName: "🔀 ${{ parameters.productName }} – route traffic"
 
           postRouteTraffic:
@@ -190,12 +217,9 @@ jobs:
                   displayName: "ℹ️ ${{ parameters.productName }} – pre-deploy"
 
     - ${{ each inc in parameters.canaryIncrements }}:
-      - deployment: ${{ format('CanaryStep_{0}', inc.key) }}
+      - deployment: ${{ inc.key }}
         displayName: "🕊️ Canary step ${{ inc.value }}% – ${{ parameters.productName }}"
-        ${{ if eq(int(inc.key), 0) }}:
-          dependsOn: CanaryPreDeploy
-        ${{ if gt(int(inc.key), 0) }}:
-          dependsOn: ${{ format('CanaryStep_{0}', sub(int(inc.key), 1)) }}
+        dependsOn: ${{ coalesce(parameters.canaryStepDependencyMap[inc.key], 'CanaryPreDeploy') }}
         environment: ${{ parameters.deployEnvironmentName }}
         strategy:
           runOnce:
@@ -230,16 +254,20 @@ jobs:
                     displayName: "🔀 ${{ parameters.productName }} – ramp to ${{ inc.value }}%"
 
                 - pwsh: |
-                    Write-Host "Holding steady for ${{ parameters.stabilizationMinutes }} minutes before next increment"
-                    Start-Sleep -Seconds ${{ mul(parameters.stabilizationMinutes, 60) }}
+                    $seconds = $env:STABILIZATION_SECONDS -as [int]
+                    if ($seconds -le 0) { $seconds = 1 }
+                    Write-Host "Holding steady for $seconds seconds before next increment"
+                    Start-Sleep -Seconds $seconds
                   displayName: "⏱️ ${{ parameters.productName }} – stabilize"
+                  env:
+                    STABILIZATION_SECONDS: ${{ parameters.stabilizationSeconds }}
 
     - deployment: CanaryFinal
       displayName: "🕊️ Canary finalize 100% – ${{ parameters.productName }}"
-      ${{ if gt(length(parameters.canaryIncrements), 0) }}:
-        dependsOn: ${{ format('CanaryStep_{0}', sub(length(parameters.canaryIncrements), 1)) }}
-      ${{ if eq(length(parameters.canaryIncrements), 0) }}:
-        dependsOn: CanaryPreDeploy
+      dependsOn:
+        - CanaryPreDeploy
+        - ${{ each inc in parameters.canaryIncrements }}:
+          - ${{ inc.key }}
       environment: ${{ parameters.deployEnvironmentName }}
       strategy:
         runOnce:

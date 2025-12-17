@@ -27,11 +27,38 @@ parameters:
   - name: canaryIncrements
     type: object
     default:
+      CanaryStep_0: 25
+      CanaryStep_1: 50
+  - name: nativeCanaryIncrements
+    type: object
+    default:
       - 25
       - 50
-  - name: canaryStabilizationMinutes
+  - name: canaryStepDependencyMap
+    type: object
+    default:
+      CanaryStep_0: CanaryPreDeploy
+      CanaryStep_1: CanaryStep_0
+      CanaryStep_2: CanaryStep_1
+      CanaryStep_3: CanaryStep_2
+      CanaryStep_4: CanaryStep_3
+      CanaryStep_5: CanaryStep_4
+      CanaryStep_6: CanaryStep_5
+      CanaryStep_7: CanaryStep_6
+      CanaryStep_8: CanaryStep_7
+      CanaryStep_9: CanaryStep_8
+      CanaryStep_10: CanaryStep_9
+      CanaryStep_11: CanaryStep_10
+      CanaryStep_12: CanaryStep_11
+      CanaryStep_13: CanaryStep_12
+      CanaryStep_14: CanaryStep_13
+      CanaryStep_15: CanaryStep_14
+      CanaryStep_16: CanaryStep_15
+      CanaryStep_17: CanaryStep_16
+      CanaryStep_18: CanaryStep_17
+  - name: canaryStabilizationSeconds
     type: number
-    default: 15
+    default: 900
   - name: canaryStrategyMode
     type: string
     default: Orchestrated
@@ -119,7 +146,9 @@ extends:
         failureStepsTemplate: ${{ parameters.canaryFailureStepsTemplate }}
         failureStepsParameters: ${{ parameters.canaryFailureStepsParameters }}
         canaryIncrements: ${{ parameters.canaryIncrements }}
-        stabilizationMinutes: ${{ parameters.canaryStabilizationMinutes }}
+        nativeCanaryIncrements: ${{ parameters.nativeCanaryIncrements }}
+        canaryStepDependencyMap: ${{ parameters.canaryStepDependencyMap }}
+        stabilizationSeconds: ${{ parameters.canaryStabilizationSeconds }}
         strategyMode: ${{ parameters.canaryStrategyMode }}
 
     ${{ if eq(parameters.containerDeploymentStrategy, 'BlueGreen') }}:
