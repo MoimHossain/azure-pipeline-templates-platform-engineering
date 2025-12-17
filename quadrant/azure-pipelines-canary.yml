@@ -21,7 +21,7 @@ extends:
       CanaryStep_0: 20
       CanaryStep_1: 50
       CanaryStep_2: 80
-    canaryStabilizationSeconds: 600
+    canaryStabilizationSeconds: 60
     canaryPreDeployStepsTemplate: templates/canary/predeploy.yml@self
     canaryRouteTrafficStepsTemplate: templates/canary/route-traffic.yml@self
     canaryPostRouteTrafficStepsTemplate: templates/canary/post-route.yml@self
