@@ -1,41 +1,24 @@
 #!/usr/bin/env bash
-az login \
-  --service-principal \
-  --username "$ENTRA_CLIENT_ID" \
-  --password "$ENTRA_CLIENT_SECRET" \
-  --tenant "$ENTRA_TENANT_ID" \
-  >/dev/null
+set -euo pipefail
+
+az login --service-principal --username "$ENTRA_CLIENT_ID" --password "$ENTRA_CLIENT_SECRET" --tenant "$ENTRA_TENANT_ID" >/dev/null
 az account set --subscription "$ACA_SUBSCRIPTION_ID"
 
 revision_name="${ACA_CONTAINER_APP}--${ACA_REVISION_SUFFIX}"
 
 echo "[Quadrant] Ensuring revision ${revision_name} exists for ${PRODUCT_NAME}"
 
-existing_revision=$(az containerapp revision list \
-  --name "$ACA_CONTAINER_APP" \
-  --resource-group "$ACA_RESOURCE_GROUP" \
-  --query "[?name=='${revision_name}'].name | [0]" \
-  -o tsv)
+existing_revision=$(az containerapp revision list --name "$ACA_CONTAINER_APP" --resource-group "$ACA_RESOURCE_GROUP" --query "[?name=='${revision_name}'].name | [0]" -o tsv)
 
 if [[ -z "$existing_revision" ]]; then
   echo "Creating new revision ${revision_name} with image $ACA_IMAGE_NAME"
-  az containerapp update \
-    --name "$ACA_CONTAINER_APP" \
-    --resource-group "$ACA_RESOURCE_GROUP" \
-    --image "$ACA_IMAGE_NAME" \
-    --revision-suffix "$ACA_REVISION_SUFFIX" \
-    >/dev/null
+  az containerapp update --name "$ACA_CONTAINER_APP" --resource-group "$ACA_RESOURCE_GROUP" --image "$ACA_IMAGE_NAME" --revision-suffix "$ACA_REVISION_SUFFIX" >/dev/null
 else
   echo "Revision ${revision_name} already exists; skipping image update"
 fi
 
 for attempt in {1..12}; do
-  state=$(az containerapp revision show \
-    --name "$ACA_CONTAINER_APP" \
-    --resource-group "$ACA_RESOURCE_GROUP" \
-    --revision "$revision_name" \
-    --query "properties.provisioningState" \
-    -o tsv 2>/dev/null || true)
+  state=$(az containerapp revision show --name "$ACA_CONTAINER_APP" --resource-group "$ACA_RESOURCE_GROUP" --revision "$revision_name" --query "properties.provisioningState" -o tsv 2>/dev/null || true)
   if [[ "$state" == "Succeeded" ]]; then
     echo "Revision ${revision_name} is ready"
     break
@@ -44,11 +27,6 @@ for attempt in {1..12}; do
   sleep 5
 done
 
-fqdn=$(az containerapp revision show \
-  --name "$ACA_CONTAINER_APP" \
-  --resource-group "$ACA_RESOURCE_GROUP" \
-  --revision "$revision_name" \
-  --query "properties.fqdn" \
-  -o tsv)
+fqdn=$(az containerapp revision show --name "$ACA_CONTAINER_APP" --resource-group "$ACA_RESOURCE_GROUP" --revision "$revision_name" --query "properties.fqdn" -o tsv)
 
 echo "New revision FQDN: ${fqdn}"
