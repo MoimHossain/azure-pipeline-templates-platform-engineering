@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-az login --service-principal --username "$ENTRA_CLIENT_ID" --password "$ENTRA_CLIENT_SECRET" --tenant "$ENTRA_TENANT_ID" >/dev/null
+az login \
+  --service-principal \
+  --username "$ENTRA_CLIENT_ID" \
+  --password "$ENTRA_CLIENT_SECRET" \
+  --tenant "$ENTRA_TENANT_ID" \
+  >/dev/null
 az account set --subscription "$ACA_SUBSCRIPTION_ID"
 
 revision_name="${ACA_CONTAINER_APP}--${ACA_REVISION_SUFFIX}"
