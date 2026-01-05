@@ -24,7 +24,10 @@ parameters:
     type: string
 
 steps:
-  - bash: templates/canary/scripts/aca-ensure-revision.sh
+  - bash: |
+      set -euo pipefail
+      chmod +x "$(Build.SourcesDirectory)/templates/canary/scripts/aca-ensure-revision.sh"
+      "$(Build.SourcesDirectory)/templates/canary/scripts/aca-ensure-revision.sh"
     displayName: "Quadrant – ensure Azure Container Apps revision"
     env:
       ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)

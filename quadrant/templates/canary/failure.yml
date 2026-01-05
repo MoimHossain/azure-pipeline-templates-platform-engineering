@@ -24,7 +24,10 @@ steps:
     displayName: "Quadrant – failure response"
 
   - ${{ if ne(parameters.subscriptionId, '') }}:
-    - bash: templates/canary/scripts/aca-rollback-traffic.sh
+    - bash: |
+        set -euo pipefail
+        chmod +x "$(Build.SourcesDirectory)/templates/canary/scripts/aca-rollback-traffic.sh"
+        "$(Build.SourcesDirectory)/templates/canary/scripts/aca-rollback-traffic.sh"
       displayName: "Quadrant – restore ACA traffic"
       env:
         ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)

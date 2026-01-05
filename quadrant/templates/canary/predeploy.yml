@@ -23,7 +23,10 @@ steps:
     displayName: "Quadrant – pre-deploy guardrails"
 
   - ${{ if ne(parameters.subscriptionId, '') }}:
-    - bash: templates/canary/scripts/aca-configure-revision-mode.sh
+    - bash: |
+        set -euo pipefail
+        chmod +x "$(Build.SourcesDirectory)/templates/canary/scripts/aca-configure-revision-mode.sh"
+        "$(Build.SourcesDirectory)/templates/canary/scripts/aca-configure-revision-mode.sh"
       displayName: "Quadrant – configure ACA revision mode"
       env:
         ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
