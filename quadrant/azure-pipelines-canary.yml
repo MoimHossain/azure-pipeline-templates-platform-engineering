@@ -28,6 +28,4 @@ extends:
     canarySuccessStepsTemplate: templates/canary/success.yml@self
     canaryFailureStepsTemplate: templates/canary/failure.yml@self
     canaryHealthCheckStepsTemplate: templates/canary/health-check.yml@self
-    deployStepsParameters:
-      kubernetesManifestPath: manifests/quadrant-orders.yml
-      kubernetesNamespace: quadrant
+

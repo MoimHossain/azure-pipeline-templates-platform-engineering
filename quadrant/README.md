@@ -12,4 +12,9 @@ This project contains workload-specific pipeline templates that extend the base 
 - Optional knobs (`blueGreenSwapMode`, the `canaryIncrements` map, `canaryStabilizationSeconds`, `canaryHealthCheckStepsTemplate`, etc.) and manifest-specific parameters
 - For orchestrated canary rollouts, workload-owned step templates live under `templates/canary/` and are passed through parameters like `canaryPreDeployStepsTemplate`, `canaryRouteTrafficStepsTemplate`, `canaryHealthCheckStepsTemplate`, and `canarySuccessStepsTemplate` to customize each phase while the platform template manages job orchestration.
 
+`templates/canary/deploy.yml` now supports two deployment modes:
+
+- Provide `kubernetesManifestPath` and `kubernetesNamespace` when targeting Kubernetes (the previous behavior, still the default in `azure-pipelines-canary.yml`).
+- Omit the Kubernetes fields and instead pass `platformDeployTemplate` plus any `platformDeployParameters` when you need a different runtime (for example, an Azure Container Apps–specific template). If neither option is provided the template raises an explicit error so you know to wire in your platform-specific steps.
+
 The platform templates take care of checkout, build orchestration, and deployment strategy wiring so workload teams stay focused on their container artifact details. 
