@@ -12,8 +12,16 @@ extends:
   template: templates/container-workloads/container-pipeline-base.yml@Platform-Engineering
   parameters:
     productName: Quadrant
-    imageName: contoso/orders:$(Build.BuildId)
+    imageName: moimhossain/canary-api:$(Build.SourceVersion)
     deployEnvironmentName: quadrant-dev
+    buildStepsTemplate: templates/build/build.yml@self
+    buildStepsParameters:
+      dockerRepository: moimhossain/canary-api
+      imageTag: $(Build.SourceVersion)
+      dotnetProject: src/BlueGreenFeature.csproj
+      dockerfilePath: src/Dockerfile
+      buildContext: $(Build.SourcesDirectory)/src
+      dockerServiceConnection: DockerHub
     containerDeploymentStrategy: Canary
     canaryStrategyMode: Orchestrated
     deployStepsTemplate: templates/canary/deploy.yml@self
@@ -28,4 +36,7 @@ extends:
     canarySuccessStepsTemplate: templates/canary/success.yml@self
     canaryFailureStepsTemplate: templates/canary/failure.yml@self
     canaryHealthCheckStepsTemplate: templates/canary/health-check.yml@self
+    deployStepsParameters:
+      kubernetesManifestPath: manifests/quadrant-orders.yml
+      kubernetesNamespace: quadrant
 

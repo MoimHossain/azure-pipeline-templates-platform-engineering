@@ -1,0 +1,56 @@
+parameters:
+  - name: imageName
+    type: string
+  - name: dockerRepository
+    type: string
+    default: moimhossain/canary-api
+  - name: imageTag
+    type: string
+    default: $(Build.BuildNumber)
+  - name: dockerfilePath
+    type: string
+    default: src/Dockerfile
+  - name: buildContext
+    type: string
+    default: $(Build.SourcesDirectory)/src
+  - name: dotnetProject
+    type: string
+    default: src/BlueGreenFeature.csproj
+  - name: buildConfiguration
+    type: string
+    default: Release
+  - name: publishDirectory
+    type: string
+    default: $(Build.ArtifactStagingDirectory)/publish
+  - name: dockerServiceConnection
+    type: string
+    default: DockerHub
+
+steps:
+  - task: DotNetCoreCLI@2
+    displayName: "Restore .NET dependencies"
+    inputs:
+      command: restore
+      projects: ${{ parameters.dotnetProject }}
+
+  - task: DotNetCoreCLI@2
+    displayName: "Publish .NET artifacts"
+    inputs:
+      command: publish
+      publishWebProjects: false
+      projects: ${{ parameters.dotnetProject }}
+      arguments: >-
+        -c ${{ parameters.buildConfiguration }}
+        -o ${{ parameters.publishDirectory }}
+      zipAfterPublish: false
+
+  - task: Docker@2
+    displayName: "Build and push ${{ parameters.imageName }}"
+    inputs:
+      command: buildAndPush
+      repository: ${{ parameters.dockerRepository }}
+      tags: |
+        ${{ parameters.imageTag }}
+      dockerfile: ${{ parameters.dockerfilePath }}
+      buildContext: ${{ parameters.buildContext }}
+      containerRegistry: ${{ parameters.dockerServiceConnection }}
