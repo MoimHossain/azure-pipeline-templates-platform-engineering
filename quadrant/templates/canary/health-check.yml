@@ -22,10 +22,10 @@ parameters:
     default: /api/health
 
 steps:
-  - bash: |
+    - bash: |
       set -euo pipefail
-      chmod +x "$(Build.SourcesDirectory)/templates/canary/scripts/aca-health-check.sh"
-      "$(Build.SourcesDirectory)/templates/canary/scripts/aca-health-check.sh"
+      chmod +x "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-health-check.sh"
+      "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-health-check.sh"
     displayName: "Quadrant – ACA health check"
     env:
       ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)

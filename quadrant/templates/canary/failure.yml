@@ -25,9 +25,9 @@ steps:
 
   - ${{ if ne(parameters.subscriptionId, '') }}:
     - bash: |
-        set -euo pipefail
-        chmod +x "$(Build.SourcesDirectory)/templates/canary/scripts/aca-rollback-traffic.sh"
-        "$(Build.SourcesDirectory)/templates/canary/scripts/aca-rollback-traffic.sh"
+      set -euo pipefail
+      chmod +x "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-rollback-traffic.sh"
+      "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-rollback-traffic.sh"
       displayName: "Quadrant – restore ACA traffic"
       env:
         ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)

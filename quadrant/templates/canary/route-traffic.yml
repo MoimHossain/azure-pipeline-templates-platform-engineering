@@ -19,10 +19,10 @@ parameters:
     type: string
 
 steps:
-  - bash: |
+    - bash: |
       set -euo pipefail
-      chmod +x "$(Build.SourcesDirectory)/templates/canary/scripts/aca-route-traffic.sh"
-      "$(Build.SourcesDirectory)/templates/canary/scripts/aca-route-traffic.sh"
+      chmod +x "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-route-traffic.sh"
+      "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-route-traffic.sh"
     displayName: "Quadrant – route ${{ parameters.incrementPercent }}% via ACA"
     env:
       ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
