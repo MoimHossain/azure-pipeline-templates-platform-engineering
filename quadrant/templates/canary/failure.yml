@@ -17,6 +17,9 @@ parameters:
     default: ""
 
 steps:
+  - checkout: self
+    displayName: "Quadrant – fetch deployment scripts"
+
   - script: |
       echo "[Quadrant] Canary failed for ${{ parameters.productName }}"
       echo "Environment: ${{ parameters.deployEnvironmentName }}"

@@ -22,6 +22,9 @@ parameters:
     default: /api/health
 
 steps:
+  - checkout: self
+    displayName: "Quadrant – fetch deployment scripts"
+
   - task: Bash@3
     displayName: "Quadrant – ACA health check"
     inputs:

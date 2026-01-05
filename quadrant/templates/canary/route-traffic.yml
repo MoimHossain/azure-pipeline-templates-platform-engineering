@@ -19,6 +19,9 @@ parameters:
     type: string
 
 steps:
+  - checkout: self
+    displayName: "Quadrant – fetch deployment scripts"
+
   - task: Bash@3
     displayName: "Quadrant – route ${{ parameters.incrementPercent }}% via ACA"
     inputs:
