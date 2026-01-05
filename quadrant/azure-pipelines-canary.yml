@@ -8,6 +8,12 @@ resources:
       name: Platform-Engineering/Platform-Engineering
       ref: refs/heads/main   # or a tag, strongly recommended
 
+variables:
+  containerAppRevisionSuffix: canary-$(Build.BuildId)
+  containerAppSubscriptionId: 7f2413b7-93b1-4560-a932-220c34c9db29
+  containerAppResourceGroup: ContainerApps
+  containerAppName: canary-api-demo
+
 extends:
   template: templates/container-workloads/container-pipeline-base.yml@Platform-Engineering
   parameters:
@@ -31,12 +37,35 @@ extends:
       CanaryStep_2: 80
     canaryStabilizationSeconds: 10
     canaryPreDeployStepsTemplate: templates/canary/predeploy.yml@self
+    canaryPreDeployStepsParameters:
+      subscriptionId: $(containerAppSubscriptionId)
+      resourceGroup: $(containerAppResourceGroup)
+      containerAppName: $(containerAppName)
     canaryRouteTrafficStepsTemplate: templates/canary/route-traffic.yml@self
+    canaryRouteTrafficStepsParameters:
+      subscriptionId: $(containerAppSubscriptionId)
+      resourceGroup: $(containerAppResourceGroup)
+      containerAppName: $(containerAppName)
+      revisionSuffix: $(containerAppRevisionSuffix)
     canaryPostRouteTrafficStepsTemplate: templates/canary/post-route.yml@self
     canarySuccessStepsTemplate: templates/canary/success.yml@self
     canaryFailureStepsTemplate: templates/canary/failure.yml@self
+    canaryFailureStepsParameters:
+      subscriptionId: $(containerAppSubscriptionId)
+      resourceGroup: $(containerAppResourceGroup)
+      containerAppName: $(containerAppName)
     canaryHealthCheckStepsTemplate: templates/canary/health-check.yml@self
+    canaryHealthCheckStepsParameters:
+      subscriptionId: $(containerAppSubscriptionId)
+      resourceGroup: $(containerAppResourceGroup)
+      containerAppName: $(containerAppName)
+      revisionSuffix: $(containerAppRevisionSuffix)
+      healthEndpoint: /api/health
     deployStepsParameters:
-      kubernetesManifestPath: manifests/quadrant-orders.yml
-      kubernetesNamespace: quadrant
+      platformDeployTemplate: /templates/canary/aca-deploy.yml@self
+      platformDeployParameters:
+        subscriptionId: $(containerAppSubscriptionId)
+        resourceGroup: $(containerAppResourceGroup)
+        containerAppName: $(containerAppName)
+        revisionSuffix: $(containerAppRevisionSuffix)
 

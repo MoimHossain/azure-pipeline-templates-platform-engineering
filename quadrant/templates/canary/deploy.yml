@@ -32,6 +32,7 @@ steps:
       echo "[Quadrant] Deploying ${{ parameters.productName }} container update"
       echo "Environment: ${{ parameters.deployEnvironmentName }}"
       echo "Increment: ${{ parameters.incrementPercent }}%"
+      echo "Comment: ${{ parameters.rolloutComment }}"
     displayName: "Quadrant – deploy ${{ parameters.incrementPercent }}%"
 
   - ${{ if ne(parameters.platformDeployTemplate, '') }}:

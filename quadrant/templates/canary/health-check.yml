@@ -9,11 +9,28 @@ parameters:
   - name: incrementPercent
     type: number
     default: 0
+  - name: subscriptionId
+    type: string
+  - name: resourceGroup
+    type: string
+  - name: containerAppName
+    type: string
+  - name: revisionSuffix
+    type: string
+  - name: healthEndpoint
+    type: string
+    default: /api/health
 
 steps:
-  - script: |
-      echo "[Quadrant] Running health checks for ${{ parameters.productName }}"
-      echo "Environment: ${{ parameters.deployEnvironmentName }}"
-      echo "Traffic level: ${{ parameters.incrementPercent }}%"
-      echo "(Insert real probe/monitoring commands here)"
-    displayName: "Quadrant – health check"
+  - bash: templates/canary/scripts/aca-health-check.sh
+    displayName: "Quadrant – ACA health check"
+    env:
+      ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
+      ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
+      ENTRA_TENANT_ID: $(ENTRA_TENANT_ID)
+      ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
+      ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
+      ACA_CONTAINER_APP: ${{ parameters.containerAppName }}
+      ACA_REVISION_SUFFIX: ${{ parameters.revisionSuffix }}
+      ACA_HEALTH_ENDPOINT: ${{ parameters.healthEndpoint }}
+      INCREMENT_PERCENT: ${{ parameters.incrementPercent }}

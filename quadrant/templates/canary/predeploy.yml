@@ -6,9 +6,29 @@ parameters:
   - name: stage
     type: string
     default: preDeploy
+  - name: subscriptionId
+    type: string
+    default: ""
+  - name: resourceGroup
+    type: string
+    default: ""
+  - name: containerAppName
+    type: string
+    default: ""
 
 steps:
   - script: |
       echo "[Quadrant] Pre-deploy checks for ${{ parameters.productName }}"
       echo "Target environment: ${{ parameters.deployEnvironmentName }}"
     displayName: "Quadrant – pre-deploy guardrails"
+
+  - ${{ if ne(parameters.subscriptionId, '') }}:
+    - bash: templates/canary/scripts/aca-configure-revision-mode.sh
+      displayName: "Quadrant – configure ACA revision mode"
+      env:
+        ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
+        ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
+        ENTRA_TENANT_ID: $(ENTRA_TENANT_ID)
+        ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
+        ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
+        ACA_CONTAINER_APP: ${{ parameters.containerAppName }}

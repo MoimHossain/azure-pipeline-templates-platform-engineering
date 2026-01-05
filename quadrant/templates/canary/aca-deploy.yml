@@ -5,10 +5,15 @@ parameters:
     type: string
   - name: stage
     type: string
-    default: routeTraffic
+    default: deploy
   - name: incrementPercent
     type: number
     default: 0
+  - name: imageName
+    type: string
+  - name: rolloutComment
+    type: string
+    default: ""
   - name: subscriptionId
     type: string
   - name: resourceGroup
@@ -19,8 +24,8 @@ parameters:
     type: string
 
 steps:
-  - bash: templates/canary/scripts/aca-route-traffic.sh
-    displayName: "Quadrant – route ${{ parameters.incrementPercent }}% via ACA"
+  - bash: templates/canary/scripts/aca-ensure-revision.sh
+    displayName: "Quadrant – ensure Azure Container Apps revision"
     env:
       ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
       ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
@@ -29,4 +34,5 @@ steps:
       ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
       ACA_CONTAINER_APP: ${{ parameters.containerAppName }}
       ACA_REVISION_SUFFIX: ${{ parameters.revisionSuffix }}
-      TARGET_WEIGHT: ${{ parameters.incrementPercent }}
+      ACA_IMAGE_NAME: ${{ parameters.imageName }}
+      PRODUCT_NAME: ${{ parameters.productName }}

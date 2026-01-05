@@ -6,6 +6,15 @@ parameters:
   - name: stage
     type: string
     default: failure
+  - name: subscriptionId
+    type: string
+    default: ""
+  - name: resourceGroup
+    type: string
+    default: ""
+  - name: containerAppName
+    type: string
+    default: ""
 
 steps:
   - script: |
@@ -13,3 +22,14 @@ steps:
       echo "Environment: ${{ parameters.deployEnvironmentName }}"
       echo "Initiating workload-specific rollback procedures"
     displayName: "Quadrant – failure response"
+
+  - ${{ if ne(parameters.subscriptionId, '') }}:
+    - bash: templates/canary/scripts/aca-rollback-traffic.sh
+      displayName: "Quadrant – restore ACA traffic"
+      env:
+        ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
+        ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
+        ENTRA_TENANT_ID: $(ENTRA_TENANT_ID)
+        ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
+        ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
+        ACA_CONTAINER_APP: ${{ parameters.containerAppName }}
