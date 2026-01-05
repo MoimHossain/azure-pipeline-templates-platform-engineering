@@ -34,6 +34,12 @@ parameters:
   - name: successStepsParameters
     type: object
     default: {}
+  - name: healthCheckStepsTemplate
+    type: string
+    default: ""
+  - name: healthCheckStepsParameters
+    type: object
+    default: {}
   - name: failureStepsTemplate
     type: string
     default: ""
@@ -136,8 +142,31 @@ jobs:
               - ${{ if eq(parameters.routeTrafficStepsTemplate, '') }}:
                 - script: |
                     echo "Monitoring native canary increments for ${{ parameters.productName }}"
-                    echo "Waiting ${{ parameters.stabilizationSeconds }} seconds between increments"
+                    echo "Routing traffic using native canary increments"
                   displayName: "🔀 ${{ parameters.productName }} – route traffic"
+
+              - pwsh: |
+                  $seconds = $env:STABILIZATION_SECONDS -as [int]
+                  if ($seconds -le 0) { $seconds = 1 }
+                  Write-Host "Holding steady for $seconds seconds before health checks"
+                  Start-Sleep -Seconds $seconds
+                displayName: "⏱️ ${{ parameters.productName }} – stabilize"
+                env:
+                  STABILIZATION_SECONDS: ${{ parameters.stabilizationSeconds }}
+
+              - ${{ if ne(parameters.healthCheckStepsTemplate, '') }}:
+                - template: ${{ parameters.healthCheckStepsTemplate }}
+                  parameters:
+                    productName: ${{ parameters.productName }}
+                    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                    stage: healthCheck
+                    incrementPercent: 0
+                    ${{ each pair in parameters.healthCheckStepsParameters }}:
+                      ${{ pair.key }}: ${{ pair.value }}
+              - ${{ if eq(parameters.healthCheckStepsTemplate, '') }}:
+                - script: |
+                    echo "Health check placeholder for ${{ parameters.productName }} (native mode)"
+                  displayName: "🩺 ${{ parameters.productName }} – health check"
 
           postRouteTraffic:
             steps:
@@ -262,6 +291,20 @@ jobs:
                   env:
                     STABILIZATION_SECONDS: ${{ parameters.stabilizationSeconds }}
 
+                - ${{ if ne(parameters.healthCheckStepsTemplate, '') }}:
+                  - template: ${{ parameters.healthCheckStepsTemplate }}
+                    parameters:
+                      productName: ${{ parameters.productName }}
+                      deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                      stage: healthCheck
+                      incrementPercent: ${{ inc.value }}
+                      ${{ each pair in parameters.healthCheckStepsParameters }}:
+                        ${{ pair.key }}: ${{ pair.value }}
+                - ${{ if eq(parameters.healthCheckStepsTemplate, '') }}:
+                  - script: |
+                      echo "Health check placeholder for ${{ parameters.productName }} at ${{ inc.value }}%"
+                    displayName: "🩺 ${{ parameters.productName }} – health check"
+
     - deployment: CanaryFinal
       displayName: "🕊️ Canary finalize 100% – ${{ parameters.productName }}"
       dependsOn:
@@ -301,6 +344,29 @@ jobs:
                 - script: |
                     echo "Promoting canary to 100% traffic for ${{ parameters.productName }}"
                   displayName: "⬆️ ${{ parameters.productName }} – promote"
+
+              - pwsh: |
+                  $seconds = $env:STABILIZATION_SECONDS -as [int]
+                  if ($seconds -le 0) { $seconds = 1 }
+                  Write-Host "Holding steady for $seconds seconds before health checks"
+                  Start-Sleep -Seconds $seconds
+                displayName: "⏱️ ${{ parameters.productName }} – stabilize"
+                env:
+                  STABILIZATION_SECONDS: ${{ parameters.stabilizationSeconds }}
+
+              - ${{ if ne(parameters.healthCheckStepsTemplate, '') }}:
+                - template: ${{ parameters.healthCheckStepsTemplate }}
+                  parameters:
+                    productName: ${{ parameters.productName }}
+                    deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+                    stage: healthCheck
+                    incrementPercent: 100
+                    ${{ each pair in parameters.healthCheckStepsParameters }}:
+                      ${{ pair.key }}: ${{ pair.value }}
+              - ${{ if eq(parameters.healthCheckStepsTemplate, '') }}:
+                - script: |
+                    echo "Health check placeholder for ${{ parameters.productName }} at 100%"
+                  displayName: "🩺 ${{ parameters.productName }} – health check"
 
     - deployment: CanaryPostRoute
       displayName: "🕊️ Canary post-route – ${{ parameters.productName }}"

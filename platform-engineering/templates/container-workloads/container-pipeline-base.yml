@@ -89,6 +89,12 @@ parameters:
   - name: canarySuccessStepsParameters
     type: object
     default: {}
+  - name: canaryHealthCheckStepsTemplate
+    type: string
+    default: ""
+  - name: canaryHealthCheckStepsParameters
+    type: object
+    default: {}
   - name: canaryFailureStepsTemplate
     type: string
     default: ""
@@ -143,6 +149,8 @@ extends:
         postRouteTrafficStepsParameters: ${{ parameters.canaryPostRouteTrafficStepsParameters }}
         successStepsTemplate: ${{ parameters.canarySuccessStepsTemplate }}
         successStepsParameters: ${{ parameters.canarySuccessStepsParameters }}
+        healthCheckStepsTemplate: ${{ parameters.canaryHealthCheckStepsTemplate }}
+        healthCheckStepsParameters: ${{ parameters.canaryHealthCheckStepsParameters }}
         failureStepsTemplate: ${{ parameters.canaryFailureStepsTemplate }}
         failureStepsParameters: ${{ parameters.canaryFailureStepsParameters }}
         canaryIncrements: ${{ parameters.canaryIncrements }}

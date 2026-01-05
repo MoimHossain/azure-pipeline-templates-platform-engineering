@@ -1,0 +1,19 @@
+parameters:
+  - name: productName
+    type: string
+  - name: deployEnvironmentName
+    type: string
+  - name: stage
+    type: string
+    default: healthCheck
+  - name: incrementPercent
+    type: number
+    default: 0
+
+steps:
+  - script: |
+      echo "[Quadrant] Running health checks for ${{ parameters.productName }}"
+      echo "Environment: ${{ parameters.deployEnvironmentName }}"
+      echo "Traffic level: ${{ parameters.incrementPercent }}%"
+      echo "(Insert real probe/monitoring commands here)"
+    displayName: "Quadrant – health check"
