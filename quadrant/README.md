@@ -12,4 +12,4 @@ This project contains workload-specific pipeline templates that extend the base 
 - Optional knobs (`blueGreenSwapMode`, the `canaryIncrements` map, `canaryStabilizationSeconds`, `canaryHealthCheckStepsTemplate`, etc.) and manifest-specific parameters
 - For orchestrated canary rollouts, workload-owned step templates live under `templates/canary/` and are passed through parameters like `canaryPreDeployStepsTemplate`, `canaryRouteTrafficStepsTemplate`, `canaryHealthCheckStepsTemplate`, and `canarySuccessStepsTemplate` to customize each phase while the platform template manages job orchestration.
 
-The platform templates take care of checkout, build orchestration, and deployment strategy wiring so workload teams stay focused on their container artifact details.
+The platform templates take care of checkout, build orchestration, and deployment strategy wiring so workload teams stay focused on their container artifact details. 
