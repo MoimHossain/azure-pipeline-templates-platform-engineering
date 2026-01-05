@@ -23,16 +23,16 @@ steps:
       echo "Initiating workload-specific rollback procedures"
     displayName: "Quadrant – failure response"
 
-  - ${{ if ne(parameters.subscriptionId, '') }}:
-    - bash: |
-      set -euo pipefail
-      chmod +x "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-rollback-traffic.sh"
-      "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-rollback-traffic.sh"
-      displayName: "Quadrant – restore ACA traffic"
-      env:
-        ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
-        ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
-        ENTRA_TENANT_ID: $(ENTRA_TENANT_ID)
-        ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
-        ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
-        ACA_CONTAINER_APP: ${{ parameters.containerAppName }}
+  - task: Bash@3
+    condition: ne('${{ parameters.subscriptionId }}', '')
+    displayName: "Quadrant – restore ACA traffic"
+    inputs:
+      targetType: filePath
+      filePath: "$(Build.SourcesDirectory)/templates/canary/scripts/aca-rollback-traffic.sh"
+    env:
+      ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
+      ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
+      ENTRA_TENANT_ID: $(ENTRA_TENANT_ID)
+      ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
+      ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
+      ACA_CONTAINER_APP: ${{ parameters.containerAppName }}

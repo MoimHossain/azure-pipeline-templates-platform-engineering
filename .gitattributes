@@ -1,0 +1,2 @@
+# Enforce LF endings for shell scripts executed on Linux agents
+*.sh text eol=lf

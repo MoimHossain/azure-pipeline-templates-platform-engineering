@@ -17,21 +17,30 @@ parameters:
     default: ""
 
 steps:
+  - checkout: self
+    displayName: "Quadrant – fetch deployment scripts"
+
   - script: |
       echo "[Quadrant] Pre-deploy checks for ${{ parameters.productName }}"
       echo "Target environment: ${{ parameters.deployEnvironmentName }}"
     displayName: "Quadrant – pre-deploy guardrails"
 
-  - ${{ if ne(parameters.subscriptionId, '') }}:
-    - bash: |
-        set -euo pipefail
-        chmod +x "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-configure-revision-mode.sh"
-        "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-configure-revision-mode.sh"
-      displayName: "Quadrant – configure ACA revision mode"
-      env:
-        ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
-        ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
-        ENTRA_TENANT_ID: $(ENTRA_TENANT_ID)
-        ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
-        ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
-        ACA_CONTAINER_APP: ${{ parameters.containerAppName }}
+  - script: |
+      echo "[Quadrant] Working directory:" && pwd
+      echo "[Quadrant] Listing Build.SourcesDirectory:" && ls -al "$(Build.SourcesDirectory)"
+      echo "[Quadrant] Listing templates/canary/scripts:" && ls -al "$(Build.SourcesDirectory)/templates/canary/scripts"
+    displayName: "Quadrant – debug workspace layout"
+
+  - task: Bash@3
+    condition: ne('${{ parameters.subscriptionId }}', '')
+    displayName: "Quadrant – configure ACA revision mode"
+    inputs:
+      targetType: filePath
+      filePath: "$(Build.SourcesDirectory)/templates/canary/scripts/aca-configure-revision-mode.sh"
+    env:
+      ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
+      ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
+      ENTRA_TENANT_ID: $(ENTRA_TENANT_ID)
+      ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
+      ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
+      ACA_CONTAINER_APP: ${{ parameters.containerAppName }}

@@ -1,24 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-required_vars=(
-  ENTRA_CLIENT_ID
-  ENTRA_CLIENT_SECRET
-  ENTRA_TENANT_ID
-  ACA_SUBSCRIPTION_ID
-  ACA_RESOURCE_GROUP
-  ACA_CONTAINER_APP
-  ACA_REVISION_SUFFIX
-  TARGET_WEIGHT
-)
-
-for var in "${required_vars[@]}"; do
-  if [[ -z "${!var:-}" ]]; then
-    echo "##vso[task.logissue type=error]Missing environment variable: $var"
-    exit 1
-  fi
-done
-
 az login \
   --service-principal \
   --username "$ENTRA_CLIENT_ID" \

@@ -19,11 +19,11 @@ parameters:
     type: string
 
 steps:
-    - bash: |
-      set -euo pipefail
-      chmod +x "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-route-traffic.sh"
-      "$(Build.SourcesDirectory)/quadrant/templates/canary/scripts/aca-route-traffic.sh"
+  - task: Bash@3
     displayName: "Quadrant – route ${{ parameters.incrementPercent }}% via ACA"
+    inputs:
+      targetType: filePath
+      filePath: "$(Build.SourcesDirectory)/templates/canary/scripts/aca-route-traffic.sh"
     env:
       ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
       ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
