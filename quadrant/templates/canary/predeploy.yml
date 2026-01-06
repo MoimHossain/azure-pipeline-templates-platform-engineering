@@ -25,22 +25,17 @@ steps:
       echo "Target environment: ${{ parameters.deployEnvironmentName }}"
     displayName: "Quadrant – pre-deploy guardrails"
 
-  - script: |
-      echo "[Quadrant] Working directory:" && pwd
-      echo "[Quadrant] Listing Build.SourcesDirectory:" && ls -al "$(Build.SourcesDirectory)"
-      echo "[Quadrant] Listing templates/canary/scripts:" && ls -al "$(Build.SourcesDirectory)/templates/canary/scripts"
-    displayName: "Quadrant – debug workspace layout"
-
-  - task: Bash@3
+  - task: AzureCLI@2
     condition: ne('${{ parameters.subscriptionId }}', '')
     displayName: "Quadrant – configure ACA revision mode"
     inputs:
-      targetType: filePath
-      filePath: "$(Build.SourcesDirectory)/templates/canary/scripts/aca-configure-revision-mode.sh"
+      azureSubscription: ServicePrincipalForAzDO
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        az containerapp revision set-mode --name "$ACA_CONTAINER_APP" --resource-group "$ACA_RESOURCE_GROUP" --mode multiple
+        echo "Revision mode set to 'multiple' for $ACA_CONTAINER_APP"
     env:
-      ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
-      ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
-      ENTRA_TENANT_ID: $(ENTRA_TENANT_ID)
       ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
       ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
       ACA_CONTAINER_APP: ${{ parameters.containerAppName }}

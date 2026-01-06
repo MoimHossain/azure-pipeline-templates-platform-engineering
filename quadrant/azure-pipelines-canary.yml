@@ -10,8 +10,8 @@ resources:
 
 variables:
   containerAppRevisionSuffix: canary-$(Build.BuildId)
-  containerAppSubscriptionId: 7f2413b7-93b1-4560-a932-220c34c9db29
-  containerAppResourceGroup: ContainerApps
+  containerAppSubscriptionId: c5b22afb-96db-4354-99a4-5f808d5221c6
+  containerAppResourceGroup: Quadrant
   containerAppName: canary-api-demo
 
 extends:
