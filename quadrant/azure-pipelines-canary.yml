@@ -50,6 +50,10 @@ extends:
       revisionSuffix: $(containerAppRevisionSuffix)
     canaryPostRouteTrafficStepsTemplate: templates/canary/post-route.yml@self
     canarySuccessStepsTemplate: templates/canary/success.yml@self
+    canarySuccessStepsParameters:
+      subscriptionId: $(containerAppSubscriptionId)
+      resourceGroup: $(containerAppResourceGroup)
+      containerAppName: $(containerAppName)
     canaryFailureStepsTemplate: templates/canary/failure.yml@self
     canaryFailureStepsParameters:
       subscriptionId: $(containerAppSubscriptionId)
