@@ -41,6 +41,7 @@ extends:
       subscriptionId: $(containerAppSubscriptionId)
       resourceGroup: $(containerAppResourceGroup)
       containerAppName: $(containerAppName)
+      canaryRevisionSuffix: $(containerAppRevisionSuffix)
     canaryRouteTrafficStepsTemplate: templates/canary/route-traffic.yml@self
     canaryRouteTrafficStepsParameters:
       subscriptionId: $(containerAppSubscriptionId)

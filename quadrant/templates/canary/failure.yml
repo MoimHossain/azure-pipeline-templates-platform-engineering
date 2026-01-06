@@ -26,16 +26,50 @@ steps:
       echo "Initiating workload-specific rollback procedures"
     displayName: "Quadrant – failure response"
 
-  - task: Bash@3
+  - task: DownloadPipelineArtifact@2
+    condition: ne('${{ parameters.subscriptionId }}', '')
+    displayName: "Quadrant – download canary context"
+    inputs:
+      artifact: canary-context
+      path: $(Pipeline.Workspace)/canary-context
+
+  - task: AzureCLI@2
     condition: ne('${{ parameters.subscriptionId }}', '')
     displayName: "Quadrant – restore ACA traffic"
     inputs:
-      targetType: filePath
-      filePath: "$(Build.SourcesDirectory)/templates/canary/scripts/aca-rollback-traffic.sh"
+      azureSubscription: ServicePrincipalForAzDO
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -euo pipefail
+
+        az account set --subscription "$ACA_SUBSCRIPTION_ID"
+
+        context_dir="${PIPELINE_WORKSPACE:-$SYSTEM_DEFAULTWORKINGDIRECTORY}/canary-context"
+        context_file="$context_dir/revisions.env"
+
+        if [[ ! -f "$context_file" ]]; then
+          echo "##vso[task.logissue type=error]Canary context file not found at ${context_file}"
+          exit 1
+        fi
+
+        # shellcheck disable=SC1090
+        source "$context_file"
+        prod_suffix="${PROD_REV_SUFFIX:-}"
+
+        if [[ -z "$prod_suffix" ]]; then
+          echo "##vso[task.logissue type=error]PROD_REV_SUFFIX missing from context"
+          exit 1
+        fi
+
+        prod_revision="${ACA_CONTAINER_APP}--${prod_suffix}"
+        echo "[Quadrant] Restoring 100% traffic to ${prod_revision}"
+        az containerapp ingress traffic set \
+          --name "$ACA_CONTAINER_APP" \
+          --resource-group "$ACA_RESOURCE_GROUP" \
+          --revision-weight "${prod_revision}=100" \
+          >/dev/null
     env:
-      ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
-      ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
-      ENTRA_TENANT_ID: $(ENTRA_TENANT_ID)
       ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
       ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
       ACA_CONTAINER_APP: ${{ parameters.containerAppName }}

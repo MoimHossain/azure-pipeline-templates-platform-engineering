@@ -15,27 +15,85 @@ parameters:
   - name: containerAppName
     type: string
     default: ""
+  - name: canaryRevisionSuffix
+    type: string
+    default: ""
 
 steps:
   - checkout: self
-    displayName: "Quadrant – fetch deployment scripts"
+    displayName: "Quadrant 🔁 fetch deployment scripts"
 
   - script: |
       echo "[Quadrant] Pre-deploy checks for ${{ parameters.productName }}"
       echo "Target environment: ${{ parameters.deployEnvironmentName }}"
-    displayName: "Quadrant – pre-deploy guardrails"
+    displayName: "Quadrant 🔁 pre-deploy guardrails"
 
   - task: AzureCLI@2
     condition: ne('${{ parameters.subscriptionId }}', '')
-    displayName: "Quadrant – configure ACA revision mode"
+    displayName: "Quadrant 🔁 configure ACA revision mode"
     inputs:
       azureSubscription: ServicePrincipalForAzDO
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
-        az containerapp revision set-mode --name "$ACA_CONTAINER_APP" --resource-group "$ACA_RESOURCE_GROUP" --mode multiple
+        set -euo pipefail
+
+        az account set --subscription "$ACA_SUBSCRIPTION_ID"
+        az containerapp revision set-mode --name "$ACA_CONTAINER_APP" --resource-group "$ACA_RESOURCE_GROUP" --mode multiple >/dev/null
         echo "Revision mode set to 'multiple' for $ACA_CONTAINER_APP"
+
+        prod_revision=$(az containerapp ingress traffic show \
+          --name "$ACA_CONTAINER_APP" \
+          --resource-group "$ACA_RESOURCE_GROUP" \
+          --query "[?weight==\`100\`].revisionName | [0]" \
+          -o tsv 2>/dev/null || true)
+
+        if [[ -z "$prod_revision" || "$prod_revision" == "None" ]]; then
+          prod_revision=$(az containerapp ingress traffic show \
+            --name "$ACA_CONTAINER_APP" \
+            --resource-group "$ACA_RESOURCE_GROUP" \
+            --query "max_by(@, &weight).revisionName" \
+            -o tsv 2>/dev/null || true)
+        fi
+
+        if [[ -z "$prod_revision" || "$prod_revision" == "None" ]]; then
+          prod_revision=$(az containerapp revision list \
+            --name "$ACA_CONTAINER_APP" \
+            --resource-group "$ACA_RESOURCE_GROUP" \
+            --query "max_by([?properties.active==true], &properties.trafficWeight).name" \
+            -o tsv 2>/dev/null || true)
+        fi
+
+        if [[ -z "$prod_revision" || "$prod_revision" == "None" ]]; then
+          echo "##vso[task.logissue type=warning]Unable to determine current production revision"
+          prod_suffix=""
+        else
+          prod_suffix="$prod_revision"
+          if [[ "$prod_revision" == ${ACA_CONTAINER_APP}--* ]]; then
+            prod_suffix="${prod_revision#${ACA_CONTAINER_APP}--}"
+          fi
+          echo "Detected production revision ${prod_revision}"
+        fi
+
+        context_dir="${PIPELINE_WORKSPACE:-$SYSTEM_DEFAULTWORKINGDIRECTORY}/canary-context"
+        mkdir -p "$context_dir"
+        context_file="$context_dir/revisions.env"
+        canary_suffix="${ACA_CANARY_SUFFIX:-}"
+        {
+          echo "PROD_REV_SUFFIX=${prod_suffix}"
+          echo "CANARY_REV_SUFFIX=${canary_suffix}"
+        } >"$context_file"
+        echo "Wrote canary context to ${context_file}"
     env:
       ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
       ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
       ACA_CONTAINER_APP: ${{ parameters.containerAppName }}
+      ACA_CANARY_SUFFIX: ${{ parameters.canaryRevisionSuffix }}
+
+  - task: PublishPipelineArtifact@1
+    condition: ne('${{ parameters.subscriptionId }}', '')
+    displayName: "Quadrant – publish canary context"
+    inputs:
+      targetPath: '$(Pipeline.Workspace)/canary-context'
+      artifact: canary-context
+      publishLocation: pipeline

@@ -25,33 +25,28 @@ parameters:
 
 steps:
   - checkout: self
-    displayName: "Quadrant – fetch deployment scripts"
+    displayName: "Quadrant 🔁 fetch deployment scripts"
 
-  - script: |
-      set -e
-      echo "[Quadrant] Agent.BuildDirectory: $(Agent.BuildDirectory)"
-      echo "[Quadrant] System.DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)"
-      echo "[Quadrant] Build.SourcesDirectory: $(Build.SourcesDirectory)"
-      echo "[Quadrant] Current working directory:" && pwd
-
-      echo "[Quadrant] Listing System.DefaultWorkingDirectory:" && ls -al "$(System.DefaultWorkingDirectory)"
-      echo "[Quadrant] Listing Build.SourcesDirectory:" && ls -al "$(Build.SourcesDirectory)"
-      echo "[Quadrant] Listing Build.SourcesDirectory/Quadrant (if present):" && ls -al "$(Build.SourcesDirectory)/Quadrant" || true
-      echo "[Quadrant] Listing Build.SourcesDirectory/templates (if present):" && ls -al "$(Build.SourcesDirectory)/templates" || true
-      echo "[Quadrant] Listing Build.SourcesDirectory/templates/canary/scripts (if present):" && ls -al "$(Build.SourcesDirectory)/templates/canary/scripts" || true
-
-      echo "[Quadrant] Top-level directories under Build.SourcesDirectory:" && find "$(Build.SourcesDirectory)" -maxdepth 1 -mindepth 1 -type d -print
-    displayName: "Quadrant – debug workspace layout"
-
-  - task: Bash@3
-    displayName: "Quadrant – ensure Azure Container Apps revision"
+  - task: AzureCLI@2
+    displayName: "Quadrant 🔁 ensure Azure Container Apps revision"
     inputs:
-      targetType: filePath
-      filePath: "$(Build.SourcesDirectory)/Quadrant/templates/canary/scripts/aca-ensure-revision.sh"
+      azureSubscription: ServicePrincipalForAzDO
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -euo pipefail
+
+        az account set --subscription "$ACA_SUBSCRIPTION_ID"
+        canary_suffix="${ACA_REVISION_SUFFIX:-}"
+
+        echo "[Quadrant] Deploying revision ${ACA_CONTAINER_APP}--${canary_suffix} for ${PRODUCT_NAME}"
+        az containerapp update \
+          --name "$ACA_CONTAINER_APP" \
+          --resource-group "$ACA_RESOURCE_GROUP" \
+          --image "$ACA_IMAGE_NAME" \
+          --revision-suffix "$canary_suffix" \
+          >/dev/null
     env:
-      ENTRA_CLIENT_ID: $(ENTRA_CLIENT_ID)
-      ENTRA_CLIENT_SECRET: $(ENTRA_CLIENT_SECRET)
-      ENTRA_TENANT_ID: $(ENTRA_TENANT_ID)
       ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
       ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
       ACA_CONTAINER_APP: ${{ parameters.containerAppName }}
