@@ -56,6 +56,7 @@ steps:
         # shellcheck disable=SC1090
         source "$context_file"
         prod_suffix="${PROD_REV_SUFFIX:-}"
+        canary_suffix="${CANARY_REV_SUFFIX:-}"
 
         if [[ -z "$prod_suffix" ]]; then
           echo "##vso[task.logissue type=error]PROD_REV_SUFFIX missing from context"
@@ -69,6 +70,18 @@ steps:
           --resource-group "$ACA_RESOURCE_GROUP" \
           --revision-weight "${prod_revision}=100" \
           >/dev/null
+
+        if [[ -n "$canary_suffix" ]]; then
+          canary_revision="${ACA_CONTAINER_APP}--${canary_suffix}"
+          echo "[Quadrant] Deactivating canary revision ${canary_revision}"
+          az containerapp revision deactivate \
+            --name "$ACA_CONTAINER_APP" \
+            --resource-group "$ACA_RESOURCE_GROUP" \
+            --revision "$canary_revision" \
+            >/dev/null || echo "##vso[task.logissue type=warning]Failed to deactivate ${canary_revision}"
+        else
+          echo "##vso[task.logissue type=warning]CANARY_REV_SUFFIX missing; skipping deactivation"
+        fi
     env:
       ACA_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
       ACA_RESOURCE_GROUP: ${{ parameters.resourceGroup }}
