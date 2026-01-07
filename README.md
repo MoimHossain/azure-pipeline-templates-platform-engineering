@@ -2,6 +2,10 @@
 
 Modern enterprises rarely run a single delivery workflow. They run dozens—each with its own language stack, runtime, and compliance targets. Without a consistent orchestration model, the platform team spends its life reviewing YAML changes while workload teams reinvent complex rollout mechanics. The solution is to treat pipeline templates like productized APIs: the platform group publishes opinionated building blocks and workload teams extend them via parameters, not copy/paste.
 
+![Diagram showing platform and workload template flow](/images/diagram.png)
+
+
+
 ## 1. Two-Repo Contract Between Platform and Workload Teams
 
 Keep the platform-owned templates in their own Azure DevOps project or GitHub repo and give it strict branching policies. Workload teams reference that repo as an external resource, but never fork or edit it directly. This clean separation enables the platform group to iterate on governance (security scans, approvals, logging) without chasing every team. Meanwhile, workload repos stay focused on their application logic.
