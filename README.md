@@ -1,3 +1,5 @@
+[Blog Post](https://moimhossain.com/2026/01/06/blueprints-for-unified-azure-pipelines-governing-rolling-blue-green-and-canary-deployments/)
+
 # Governing Azure Pipelines with Extensible Templates
 
 Modern enterprises rarely run a single delivery workflow. They run dozens—each with its own language stack, runtime, and compliance targets. Without a consistent orchestration model, the platform team spends its life reviewing YAML changes while workload teams reinvent complex rollout mechanics. The solution is to treat pipeline templates like productized APIs: the platform group publishes opinionated building blocks and workload teams extend them via parameters, not copy/paste.
