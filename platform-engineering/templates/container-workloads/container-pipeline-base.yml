@@ -37,7 +37,7 @@ parameters:
   - name: canaryStepDependencyMap
     type: object
     default:
-      CanaryStep_0: CanaryPreDeploy
+      CanaryStep_0: Canary_PreDeploy
       CanaryStep_1: CanaryStep_0
       CanaryStep_2: CanaryStep_1
       CanaryStep_3: CanaryStep_2
@@ -133,8 +133,8 @@ extends:
             ${{ pair.key }}: ${{ pair.value }}
 
     ${{ if eq(parameters.containerDeploymentStrategy, 'Canary') }}:
-      deploymentJobTemplate: /templates/container-workloads/deployment-strategies/canary-deployment-job.yml
-      deploymentJobParameters:
+      deploymentStagesTemplate: /templates/container-workloads/deployment-strategies/canary-deployment-stages.yml
+      deploymentStagesParameters:
         deployStepsTemplate: ${{ parameters.deployStepsTemplate }}
         deployStepsParameters:
           imageName: ${{ parameters.imageName }}
@@ -154,10 +154,8 @@ extends:
         failureStepsTemplate: ${{ parameters.canaryFailureStepsTemplate }}
         failureStepsParameters: ${{ parameters.canaryFailureStepsParameters }}
         canaryIncrements: ${{ parameters.canaryIncrements }}
-        nativeCanaryIncrements: ${{ parameters.nativeCanaryIncrements }}
         canaryStepDependencyMap: ${{ parameters.canaryStepDependencyMap }}
         stabilizationSeconds: ${{ parameters.canaryStabilizationSeconds }}
-        strategyMode: ${{ parameters.canaryStrategyMode }}
 
     ${{ if eq(parameters.containerDeploymentStrategy, 'BlueGreen') }}:
       deploymentJobTemplate: /templates/container-workloads/deployment-strategies/blue-green-deployment-job.yml

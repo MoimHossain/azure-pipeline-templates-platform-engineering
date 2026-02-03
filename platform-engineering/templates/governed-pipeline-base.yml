@@ -9,12 +9,22 @@ parameters:
     type: object
     default: {}
 
-  # CD injection
+  # CD injection (single-stage deployment with jobs - for Rolling/BlueGreen)
   - name: deploymentJobTemplate
     type: string
+    default: ""
   - name: deploymentJobParameters
     type: object
     default: {}
+
+  # CD injection (multi-stage deployment - for Canary)
+  - name: deploymentStagesTemplate
+    type: string
+    default: ""
+  - name: deploymentStagesParameters
+    type: object
+    default: {}
+
   - name: deployEnvironmentName
     type: string
 
@@ -41,18 +51,31 @@ stages:
             displayName: "✅ ${{ parameters.productName }} – Build completed"
 
   # --------------------
-  # CD STAGE 
+  # CD STAGE (single-stage with jobs - for Rolling/BlueGreen)
   # --------------------
-  - stage: CD
-    displayName: "CD – Deploy (${{ parameters.productName }})"
-    dependsOn: CI
-    condition: succeeded()
+  - ${{ if ne(parameters.deploymentJobTemplate, '') }}:
+    - stage: CD
+      displayName: "CD – Deploy (${{ parameters.productName }})"
+      dependsOn: CI
+      condition: succeeded()
 
-    jobs:
-      - template: ${{ parameters.deploymentJobTemplate }}
-        parameters:
-          productName: ${{ parameters.productName }}
-          deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
-          ${{ each pair in parameters.deploymentJobParameters }}:
-            ${{ pair.key }}: ${{ pair.value }}
+      jobs:
+        - template: ${{ parameters.deploymentJobTemplate }}
+          parameters:
+            productName: ${{ parameters.productName }}
+            deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+            ${{ each pair in parameters.deploymentJobParameters }}:
+              ${{ pair.key }}: ${{ pair.value }}
+
+  # --------------------
+  # CD STAGES (multi-stage deployment - for Canary)
+  # --------------------
+  - ${{ if ne(parameters.deploymentStagesTemplate, '') }}:
+    - template: ${{ parameters.deploymentStagesTemplate }}
+      parameters:
+        productName: ${{ parameters.productName }}
+        deployEnvironmentName: ${{ parameters.deployEnvironmentName }}
+        dependsOn: CI
+        ${{ each pair in parameters.deploymentStagesParameters }}:
+          ${{ pair.key }}: ${{ pair.value }}
 

@@ -29,7 +29,6 @@ extends:
       buildContext: $(Build.SourcesDirectory)/src
       dockerServiceConnection: DockerHub
     containerDeploymentStrategy: Canary
-    canaryStrategyMode: Orchestrated
     deployStepsTemplate: templates/canary/deploy.yml@self
     canaryIncrements:
       CanaryStep_0: 20
